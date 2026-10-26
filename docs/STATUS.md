@@ -44,7 +44,7 @@ T8: store a user-supplied provider key in Android Keystore-backed secure storage
 - Next executable action: `adb devices` on a physical phone, then `php artisan native:run android <serial>` and record evidence for T2.
 
 ### 2026-10-26 — T3 Symfony AI call from embedded Android PHP
-- Branch/PR: `task/t3-symfony-ai` (PR opened from this branch, stacked on T1).
+- Branch/PR: `task/t3-symfony-ai` (PR #6, stacked on T1/#5).
 - Changed files: added `symfony/ai-generic-platform`; `config/ai.php`; `app/Services/AI/` (`ModelGateway`, `AiException`, `MissingApiKeyException`, `AiRequestFailedException`); `app/Console/Commands/AiSmokeCommand.php`; rewrote `app/NativeComponents/Home.php` and `resources/views/native/home.blade.php`; added `scripts/dev/fake-openai-server.php`; added `tests/Unit/Services/AI/ModelGatewayTest.php` and `tests/Feature/HomeTest.php` (removed `NativeHomeTest.php`); updated `.env.example`, `docs/DEVELOPMENT.md`; added `docs/evidence/2026-10-26-android-emulator-ai-ok.png`.
 - Implemented: OpenAI-compatible Symfony AI gateway with injectable platform, user-safe errors, an artisan smoke command, and a FixIt home screen with a "Test AI connection" button.
 - Verified (command, environment/device, result):
