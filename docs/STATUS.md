@@ -27,7 +27,7 @@ T2: install the debug APK on a named physical Android device and capture the dev
 ## Handoff log
 
 ### 2026-10-26 — T1 Android bootstrap (+ T2 emulator evidence)
-- Branch/PR: `task/t1-android-bootstrap` (PR opened from this branch).
+- Branch/PR: `task/t1-android-bootstrap` (PR #5).
 - Changed files: adopted the NativePHP Mobile starter at the repository root (`composer.json`, `composer.lock`, `artisan`, `app/`, `bootstrap/`, `config/`, `database/`, `public/`, `resources/`, `routes/`, `tests/`, `phpunit.xml`, `.env.example`, `.env.testing`, `native`, `nativephp.lock`); rewrote `scripts/bootstrap.sh`; moved `DiagnosisState` to `app/Services/Diagnosis/`; updated `README.md`, `docs/DEVELOPMENT.md`, `docs/specs/001-android-bootstrap/spec.md`, `.github/workflows/quality.yml`; added `docs/decisions/0002-laravel-root-layout.md` and `docs/evidence/2026-10-26-android-emulator-home.png`; removed `stubs/`.
 - Implemented: root Laravel/NativePHP project, idempotent bootstrap, Symfony AI packages, app id `com.fixit.app`, generated Android resources excluded from git, host CI test job.
 - Verified (command, environment/device, result):
