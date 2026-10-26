@@ -13,7 +13,7 @@ Updated: 2026-10-26
 - Debug APK build and launch on a **physical device**: NOT VERIFIED (no device available).
 - Symfony AI Agent/Platform 0.15.0: installed, no model call yet (T3 PLANNED).
 - Camera, sessions, safety checks, secure key storage, FixIt screens: PLANNED.
-- CI: host PHP tests added; workflow execution not yet observed on GitHub.
+- CI: PHP test workflow VERIFIED on GitHub Actions (PR #5, ~20 s); Android CI build still pending (T10).
 
 ## Next step
 T2: install the debug APK on a named physical Android device and capture the device serial + screenshot. After that, T3: call a model through Symfony AI from embedded PHP (mock provider in tests; one real call with a user-supplied key).
@@ -35,7 +35,8 @@ T2: install the debug APK on a named physical Android device and capture the dev
   - `php artisan test` — same host — 8 passed, 81 assertions.
   - `php artisan native:run android emulator-5554 --no-tty --no-vite` — emulator `Pixel_9a`, Android 17 / API 37, JDK 17.0.21, Android SDK 36 — built `nativephp/android/app/build/outputs/apk/debug/app-debug.apk` (101 MB), installed and launched `com.fixit.app/com.nativephp.mobile.ui.MainActivity`; screenshot in `docs/evidence/`.
   - `php artisan native:debug` — host, JDK 17, Gradle 8.14.5, embedded PHP 8.5.12 detected.
-- Not verified: physical Android device; camera; real model call; CI on GitHub; release/signed build.
+  - GitHub Actions `PHP tests` (PR #5) — pass, ~20 s.
+- Not verified: physical Android device; camera; real model call; release/signed build.
 - Blockers/decisions: no physical Android device connected. `nativephp.lock` pinned to 8.5.12 to match host PHP (embedded runtime). NativePHP starter UI is still shown until T9.
 - Next executable action: `adb devices` on a physical phone, then `php artisan native:run android <serial>` and record evidence for T2.
 
