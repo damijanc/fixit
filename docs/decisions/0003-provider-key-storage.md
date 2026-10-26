@@ -25,4 +25,4 @@ Store the provider key as Laravel `Crypt` ciphertext in app-private storage:
 - Avoids a paid/authenticated NativePHP plugin and works on the current emulator build.
 - If the `APP_KEY` changes, the saved key cannot be decrypted; the user must re-enter it. This is acceptable and safer than silently falling back.
 - If the official plugin becomes available, `EncryptedFileApiKeyStore` can be swapped behind `ApiKeyStore` without changing the UI or gateway.
-- The ciphertext file is app-private, excluded from Android backups when stored under NativePHP's persisted data directory.
+- The ciphertext file is app-private. Whether NativePHP's persisted-data directory is excluded from Android backups has not been verified.
