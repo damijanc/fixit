@@ -33,3 +33,23 @@ it('shows a safe message when no api key is configured', function () {
         ->tap('test-ai-button')
         ->assertSee('No API key configured');
 });
+
+it('opens the native camera when the photo button is tapped', function () {
+    Native::visit('/')
+        ->tap('take-photo-button')
+        ->assertPhotoRequested();
+});
+
+it('shows the captured photo path and preview', function () {
+    Native::visit('/')
+        ->call('handlePhotoTaken', '/data/user/0/com.fixit.app/no_backup/Camera/fixit-test.jpg', 'image/jpeg')
+        ->assertSee('Photo captured: image/jpeg, fixit-test.jpg')
+        ->assertElement('image', fn (array $node): bool => ($node['ref'] ?? null) === 'captured-photo'
+            && ($node['props']['src'] ?? null) === '/data/user/0/com.fixit.app/no_backup/Camera/fixit-test.jpg');
+});
+
+it('explains when camera permission is denied', function () {
+    Native::visit('/')
+        ->call('handleCameraPermissionDenied', 'photo')
+        ->assertSee('Camera permission denied for photo');
+});

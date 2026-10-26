@@ -7,13 +7,22 @@ namespace App\NativeComponents;
 use App\Services\AI\AiException;
 use App\Services\AI\ModelGateway;
 use Illuminate\View\View;
+use Native\Mobile\Attributes\On;
 use Native\Mobile\Edge\NativeComponent;
+use Native\Mobile\Events\Camera\PermissionDenied;
+use Native\Mobile\Events\Camera\PhotoCancelled;
+use Native\Mobile\Events\Camera\PhotoTaken;
+use Native\Mobile\Facades\Camera;
 
 class Home extends NativeComponent
 {
     public string $aiStatus = '';
 
     public bool $aiBusy = false;
+
+    public string $cameraStatus = '';
+
+    public string $photoPath = '';
 
     public function testAiConnection(): void
     {
@@ -35,6 +44,38 @@ class Home extends NativeComponent
         } finally {
             $this->aiBusy = false;
         }
+    }
+
+    public function takePhoto(): void
+    {
+        $this->cameraStatus = 'Opening the camera…';
+
+        $started = Camera::getPhoto()
+            ->id('fixit-camera-check')
+            ->start();
+
+        if (! $started) {
+            $this->cameraStatus = 'The camera could not be opened. Check the permission and try again.';
+        }
+    }
+
+    #[On(PhotoTaken::class)]
+    public function handlePhotoTaken(string $path, string $mimeType = 'image/jpeg'): void
+    {
+        $this->photoPath = $path;
+        $this->cameraStatus = "Photo captured: {$mimeType}, ".basename($path);
+    }
+
+    #[On(PhotoCancelled::class)]
+    public function handlePhotoCancelled(): void
+    {
+        $this->cameraStatus = 'Photo capture cancelled.';
+    }
+
+    #[On(PermissionDenied::class)]
+    public function handleCameraPermissionDenied(string $action): void
+    {
+        $this->cameraStatus = "Camera permission denied for {$action}. Enable it in Android settings.";
     }
 
     public function render(): View

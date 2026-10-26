@@ -43,6 +43,47 @@
         @endif
     </column>
 
+    <column
+        ref="camera-card"
+        class="mt-6 w-full rounded-2xl bg-theme-surface p-6 shadow-md"
+    >
+        <text ref="camera-title" class="text-lg font-bold text-theme-on-surface">
+            Camera check
+        </text>
+        <text ref="camera-description" class="mt-2 text-sm text-theme-on-surface-variant">
+            Opens the native camera. Photos stay in app-private storage on this device.
+        </text>
+
+        <native:button
+            ref="take-photo-button"
+            class="mt-5 w-full"
+            a11y-label="Take a photo"
+            a11y-hint="Opens the camera to capture a test photo"
+            @tap="takePhoto"
+        >
+            Take a photo
+        </native:button>
+
+        @if ($photoPath !== '')
+            <image
+                ref="captured-photo"
+                src="{{ $photoPath }}"
+                alt="Captured repair photo"
+                class="mt-4 h-48 w-full rounded-xl object-cover"
+            />
+        @endif
+
+        @if ($cameraStatus !== '')
+            <text
+                ref="camera-status"
+                class="mt-4 text-sm text-theme-on-surface"
+                a11y-label="Camera result"
+            >
+                {{ $cameraStatus }}
+            </text>
+        @endif
+    </column>
+
     <text ref="home-footer" class="mt-auto pt-8 text-center text-xs text-theme-on-surface-variant">
         Android-only · Local sessions · No account required
     </text>

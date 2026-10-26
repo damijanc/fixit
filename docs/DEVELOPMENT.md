@@ -109,6 +109,36 @@ Then tap **Test AI connection** on the home screen. A successful call shows `OK:
 
 A real provider call from the emulator is intentionally deferred until T8: the key must come from secure on-device storage instead of the bundled `.env`.
 
+## Camera check (T4 spike)
+
+The `nativephp/mobile-camera` plugin (1.1.0) opens the platform camera app and returns a photo path to PHP.
+
+```bash
+php artisan native:run android emulator-5554 --no-tty --no-vite
+```
+
+Then on the device:
+
+1. Tap **Take a photo**.
+2. Grant the camera permission (Android shows `Allow FixIt to take pictures and record video?`).
+3. Capture a frame and confirm it in the system camera app.
+4. The home screen renders the photo and logs `Photo captured: image/jpeg, <file>.jpg`.
+
+Verified 2026-10-26 on the `Pixel_9a` emulator (Android 17 / API 37) using the virtual-scene camera:
+
+- The system camera opened from embedded PHP; permission prompt and capture flow worked.
+- A **1440×1920 JPEG** (62 KB, EXIF present) was written to app-private storage: `{noBackupFilesDir}/Camera/`.
+- PHP received the path and the native UI rendered it as a preview.
+- Evidence: [evidence/2026-10-26-android-emulator-camera.png](evidence/2026-10-26-android-emulator-camera.png).
+
+Notes:
+
+- This is the **system camera intent**, not an in-app camera preview. That is sufficient for photo capture but means camera controls belong to the OS app.
+- The plugin declares `CAMERA` (and video-related) permissions; Android prompts at runtime.
+- Photos are not uploaded anywhere yet. T4 must add explicit consent before any image leaves the device.
+- Emulator camera must be configured (`hw.camera.back=virtualscene` or a host webcam); a device with no camera reports capture failure.
+
+
 
 ## Run on Android
 
