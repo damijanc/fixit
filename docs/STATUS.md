@@ -73,7 +73,7 @@ T4: send the captured photo to DeepSeek `deepseek-flash` with explicit user cons
 - Next executable action: T4 — configure DeepSeek (`https://api.deepseek.com`, model `deepseek-flash`) and send the captured JPEG as a base64 `image_url` content part through Symfony AI after consent, first against the local fake provider.
 
 ### 2026-10-26 — T8 secure provider key settings
-- Branch/PR: `task/t8-secure-key-settings` (PR opened from this branch, stacked on T4/#7).
+- Branch/PR: `task/t8-secure-key-settings` (PR #8).
 - Changed files: added `ApiKeyStore`, `EncryptedFileApiKeyStore`; updated `ModelGateway` and `AppServiceProvider`; added `Settings` NativeComponent + `resources/views/native/settings.blade.php` + `/settings` route; added Provider settings entry to Home; removed `AiSmokeCommand`; switched `config/ai.php` and `.env.example` to DeepSeek defaults with no key; added tests (`SettingsTest`, `EncryptedFileApiKeyStoreTest`, in-memory key store) and updated `ModelGatewayTest`/`HomeTest`; updated DEVELOPMENT, STATUS, TASKS, README, architecture; added ADR 0003; added settings evidence screenshots.
 - Implemented: key entry from the app UI, encrypted at rest, test/remove actions, no `.env` key path, DeepSeek defaults.
 - Verified (command, environment/device, result):
