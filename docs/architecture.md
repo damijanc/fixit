@@ -23,7 +23,7 @@ Photos must be uploaded only on user action. API credentials must never be hardc
 Support low-risk, non-invasive troubleshooting. No instructions for opening mains-powered appliances, servicing gas equipment, defeating interlocks, or hazardous tests. Escalate to qualified professionals when appropriate. AI confidence is not a calibrated probability.
 
 ## Technical spikes
-- Embedded PHP extensions and Symfony AI HTTP compatibility
-- Camera image handling on physical Android
-- Secure local provider key storage
-- Signed APK build in GitHub Actions
+- Embedded PHP extensions and Symfony AI HTTP compatibility — **verified on emulator with a fake provider** (2026-10-26)
+- Camera image handling — **verified on emulator**: system camera intent, app-private JPEG, path returned to PHP (2026-10-26)
+- Secure local provider key storage — pending (T8)
+- Signed APK build in GitHub Actions — pending

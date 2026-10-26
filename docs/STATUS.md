@@ -6,24 +6,27 @@ Updated: 2026-10-26
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `task/t3-symfony-ai` (stacked on T1).
+- Active branch: `task/t4-camera-spike` (stacked on T3/#6).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 12 tests, 39 assertions.
+- Host test suite: VERIFIED — 15 tests, 53 assertions.
 - Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37), package `com.fixit.app`.
 - Physical-device build/launch: DEFERRED by decision on 2026-10-26; continue development and testing on the emulator, re-check on a real device once the build is ready to try.
 - Symfony AI in embedded Android PHP: VERIFIED on the emulator against a local OpenAI-compatible fake provider; a real provider call is pending T8 secure key storage.
-- FixIt home screen with an AI connectivity check: IMPLEMENTED and emulator-tested.
-- Camera, sessions, safety checks, secure key storage, full diagnosis screens: PLANNED.
-- CI: PHP test workflow VERIFIED on GitHub Actions (PR #5, ~20 s); Android CI build still pending (T10).
+- Camera capture in embedded Android PHP: **VERIFIED** on the emulator — permission prompt, system camera, 1440×1920 JPEG written to app-private storage, path returned to PHP and preview rendered. Evidence: `docs/evidence/2026-10-26-android-emulator-camera.png`.
+- Provider decision: **DeepSeek** (OpenAI-compatible, `https://api.deepseek.com`, `deepseek-flash` supports vision). Not wired into config defaults yet.
+- FixIt home screen with AI connectivity and camera checks: IMPLEMENTED and emulator-tested.
+- Sessions, safety checks, secure key storage, vision upload, full diagnosis screens: PLANNED.
+- CI: PHP test workflow VERIFIED on GitHub Actions; Android CI build still pending (T10).
 
 ## Next step
-T8: store a user-supplied provider key in Android Keystore-backed secure storage. Then complete T3 with one real provider call from the emulator, followed by T4 (camera/vision). Physical-device T2 verification is deferred until the build is ready to try on hardware.
+T4: send the captured photo to DeepSeek's vision model with explicit user consent, then T8 secure key storage for a real key. Physical-device T2 verification is deferred until the build is ready to try on hardware.
 
 ## Known risks
-- Physical-device behaviour (embedded PHP, WebView, camera) is still unproven.
+- Physical-device behaviour (embedded PHP, WebView, camera, permissions) is still unproven.
 - Secure key storage and signed CI APK build unimplemented.
 - A real provider key must not go into `.env` for an APK build; T8 is the prerequisite for a real on-device call.
+- DeepSeek vision takes base64/URL images via the OpenAI-compatible endpoint; the Symfony AI generic bridge mapping for image content still needs a real test.
 - NativePHP `native:build` is iOS-only; Android uses `native:run`/`native:package`.
 - Host PHP minor must match `nativephp.lock` (currently 8.5.12).
 
@@ -55,6 +58,18 @@ T8: store a user-supplied provider key in Android Keystore-backed secure storage
 - Not verified: real provider call (needs a user key from secure storage); physical device; vision/photos.
 - Blockers/decisions: `FIXIT_AI_API_KEY` is development-only because NativePHP bundles `.env` into the APK; T8 secure key storage is the next prerequisite. The generic bridge targets OpenAI-compatible endpoints; Anthropic/Gemini would need their own Symfony AI bridges if required.
 - Next executable action: implement T8 secure key entry (Android Keystore via `Native\Mobile\Facades\SecureStorage`), then run `fixit:ai-smoke`/home check against the user's real provider.
+
+### 2026-10-26 — T4 camera compatibility spike
+- Branch/PR: `task/t4-camera-spike` (PR opened from this branch, stacked on T3/#6).
+- Changed files: added `nativephp/mobile-camera` 1.1.0 and registered `CameraServiceProvider`; extended `Home` with `takePhoto()` and camera event handlers (`PhotoTaken`, `PhotoCancelled`, `PermissionDenied`); added the camera card and preview to `resources/views/native/home.blade.php`; added camera tests to `tests/Feature/HomeTest.php`; updated `docs/DEVELOPMENT.md`, `docs/STATUS.md`, `docs/TASKS.md`; added `docs/evidence/2026-10-26-android-emulator-camera.png`.
+- Implemented: explicit “Take a photo” action using `Camera::getPhoto()->start()`, runtime permission handling, photo preview from the app-private file path, and cancellation/denial messages.
+- Verified (command, environment/device, result):
+  - `php artisan test` — host — 15 passed, 53 assertions.
+  - `php artisan native:run android emulator-5554 --no-tty --no-vite` — emulator `Pixel_9a`, Android 17 / API 37, virtual-scene back camera — permission dialog shown, system camera opened, photo captured and confirmed; PHP received `{noBackupFilesDir}/Camera/captured_*.jpg`; UI rendered the preview and `Photo captured: image/jpeg, …`.
+  - Pulled the file via `adb run-as com.fixit.app`: valid **JPEG 1440×1920, 62 KB**, EXIF present.
+- Not verified: physical-device camera; in-app camera preview (plugin uses the system camera intent); image upload/vision request.
+- Blockers/decisions: camera is a **GO** on the emulator. The plugin uses the system camera app, which is acceptable for T4 but means the UI hands off to Android. Photo upload must remain opt-in with explicit consent.
+- Next executable action: T4 — configure DeepSeek (`https://api.deepseek.com`, model `deepseek-flash`) and send the captured JPEG as a base64 `image_url` content part through Symfony AI after consent, first against the local fake provider.
 
 ## Handoff entry template
 ### YYYY-MM-DD — task
