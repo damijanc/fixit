@@ -1,32 +1,100 @@
 # Developer setup
 
-**Provisional:** current repository is a bootstrap overlay, not a complete NativePHP/Laravel app. These commands have not yet been tested.
+Verified on 2026-10-26 for the host toolchain and test suite. Android emulator/device build steps are marked separately; see [STATUS.md](STATUS.md) for the latest evidence.
+
+## Layout
+
+This repository is a conventional Laravel 13 application at the root, extended with NativePHP Mobile. The Android project and the embedded PHP runtime are generated into `nativephp/` by `php artisan native:install android` and are intentionally not committed. See [decisions/0002-laravel-root-layout.md](decisions/0002-laravel-root-layout.md).
+
+## Verified host toolchain
+
+| Tool | Version |
+|---|---|
+| macOS | 25.6.0 (arm64) |
+| PHP (host) | 8.5.12 |
+| Composer | 2.10.3 |
+| Laravel framework | 13.38.0 |
+| NativePHP Mobile | 4.6.1 |
+| Embedded PHP (`nativephp.lock`) | 8.5.12 |
+| Symfony AI Agent / Platform | 0.15.0 |
+| Pest | 4.7.8 |
+| Node.js / npm | 24.11.1 / 11.6.2 (not required by the current app) |
+
+The host PHP minor version must match `nativephp.lock`; NativePHP bundles the same minor into the APK. Composer resolves dependencies against the host PHP, so a mismatch can produce a bundle that fails on device.
 
 ## Prerequisites
-PHP, Composer, Laravel installer, Node.js/npm, Android Studio/SDK, compatible JDK and an Android device with debugging enabled. Check current NativePHP documentation for exact supported versions.
 
-## Checkout
+Host:
+
+- PHP 8.3+ with `dom`, `simplexml`, `fileinfo`, `mbstring`, `pdo_sqlite` and `curl`
+- Composer 2
+
+Android builds:
+
+- JDK 17 (the generated Gradle 8.14.5 / Android Gradle Plugin 8.13.2 toolchain targets Java 17)
+- Android SDK with platform 36, build-tools 36.0.0 and platform-tools (`adb`)
+- A physical Android device (API 33+) with USB debugging, or a running emulator
+- `ANDROID_HOME` or `NATIVEPHP_ANDROID_SDK_LOCATION` pointing at the SDK; `adb` on `PATH`
+
+## Clean checkout
+
 ```bash
 git clone git@github.com:damijanc/fixit.git
 cd fixit
-git checkout setup/project-skeleton
 bash scripts/bootstrap.sh
-cd fixit
-php artisan native:install android
-php artisan native:run android
 ```
 
-The bootstrap script attempts to create a nested `fixit/` NativePHP starter, install Symfony AI packages and copy starter files. Verify and fix commands in T1. The long-term preferred repository layout is a conventional Laravel project at root; decide after T1 and record the decision.
+`scripts/bootstrap.sh` is idempotent and performs:
 
-## Verification checklist
-- [ ] Clean bootstrap succeeds; tool versions recorded
-- [ ] APK builds and installs on a real Android device
-- [ ] Symfony AI model call succeeds from Android
-- [ ] Camera/photo vision request succeeds
-- [ ] Keys stored securely and never bundled
-- [ ] Automated tests and signed release workflow
+1. `composer install`
+2. creates `.env` from `.env.example` if missing
+3. generates `APP_KEY` if missing
+4. creates `database/database.sqlite`
+5. runs migrations
+6. `php artisan native:install android` (downloads the embedded PHP runtime, cached in `nativephp/`)
+7. `php artisan test`
 
-## Agent handoff
-Assign an agent a task ID. Require reading AGENTS.md, STATUS.md, TASKS.md, and relevant architecture docs. Require a PR, tests, status updates and an exact next step.
+App identity is non-secret and lives in `.env` / `.env.example` as `NATIVEPHP_APP_ID=com.fixit.app`. Never put provider API keys or signing credentials in these files.
 
-First assignment: **T1 only**. Run bootstrap on a clean machine, fix installation issues, record actual versions/commands, update docs, and stop before diagnosis features.
+## Test
+
+```bash
+php artisan test
+# or
+composer test
+```
+
+Tests use in-memory SQLite and `.env.testing`; no device is needed.
+
+## Run on Android
+
+Debug build, install and launch on the connected device:
+
+```bash
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
+
+php artisan native:run android emulator-5554 --no-tty --no-vite
+```
+
+Omit the device ID to be prompted, or pass the physical device serial instead of `emulator-5554`.
+
+Verified 2026-10-26 on an emulator (`Pixel_9a`, Android 17 / API 37): `native:run` produced `nativephp/android/app/build/outputs/apk/debug/app-debug.apk` (101 MB), installed `com.fixit.app` and launched `com.nativephp.mobile.ui.MainActivity`. Screenshot: [evidence/2026-10-26-android-emulator-home.png](evidence/2026-10-26-android-emulator-home.png). The build downloaded the missing `platforms/android-36` automatically.
+
+Useful variants:
+
+```bash
+php artisan native:run android --build=release
+php artisan native:debug                 # host + Android toolchain report
+php artisan native:install --help        # regenerate Android resources
+```
+
+`php artisan native:build` is the **iOS** build command on macOS; it is not used for Android. Android APKs are produced by `native:run` (debug) or `native:package` (signed release, see T11).
+
+## Troubleshooting
+
+- **`Host PHP 8.x does not match nativephp.lock`** — align the host PHP with the lock file, or re-run `php artisan native:install android --force` to re-pin and download the embedded runtime for the host minor.
+- **`ADB is not installed or not in your PATH`** — add `$ANDROID_HOME/platform-tools` to `PATH`.
+- **`native/` vs `nativephp/`** — `native` is the committed CLI wrapper; `nativephp/` is generated and gitignored.
+- **JDK errors from Gradle** — confirm `JAVA_HOME` points at a JDK 17, not a newer major version.

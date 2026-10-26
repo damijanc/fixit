@@ -1,14 +1,35 @@
-name: Skeleton quality
+name: Quality
+
 on:
   push:
   pull_request:
+
 jobs:
-  shell-and-source:
+  test:
+    name: PHP tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Validate bootstrap script syntax
         run: bash -n scripts/bootstrap.sh
-      - name: Check PHP syntax for skeleton files
-        run: find stubs -name '*.php' -print0 | xargs -0 -r -n1 php -l
-# APK packaging will be added after validation on a real Android device.
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, dom, fileinfo, curl, pdo_sqlite, sqlite3, xml
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run tests
+        run: php artisan test
+
+# Android APK packaging is added once an emulator/device build is verified (T2/T10).

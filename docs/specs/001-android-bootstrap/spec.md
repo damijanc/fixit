@@ -1,7 +1,7 @@
 # Android bootstrap
 
 - Spec ID: 001-android-bootstrap
-- Status: PLANNED
+- Status: IN_PROGRESS
 - Tasks: T1, T2
 - Last reviewed: 2026-10-26
 
@@ -26,4 +26,13 @@ Follow root `AGENTS.md`, `docs/architecture.md`, `docs/mvp.md` and the architect
 Record exact test commands, results, environment and device in `docs/STATUS.md`. Only mark VERIFIED after concrete evidence.
 
 ## Implementation notes
-Not implemented yet. Agent should inspect actual code, resolve version-specific APIs, and propose the smallest testable change before coding.
+
+T1 implemented and verified on 2026-10-26:
+
+- Repository restructured to a Laravel 13 project at the root using `nativephp/mobile-starter` (ADR 0002).
+- `scripts/bootstrap.sh` now prepares the checkout in place, pins the embedded PHP runtime to the host minor via `nativephp.lock`, runs migrations and the test suite.
+- NativePHP 4.6.1 generated `nativephp/android` successfully; embedded PHP 8.5.12 downloaded.
+- Host tests pass (8 tests, 81 assertions).
+- `php artisan native:run android` built a 101 MB debug APK and launched `com.fixit.app` on a `Pixel_9a` emulator (Android 17 / API 37). Screenshot in `docs/evidence/2026-10-26-android-emulator-home.png`.
+
+Remaining for this spec: T2 on a **physical** device is deferred by decision on 2026-10-26 until the build is ready to try; emulator verification is complete. `php artisan native:build` is iOS-only; use `php artisan native:run android` for Android debug builds.
