@@ -60,7 +60,7 @@ T4: send the captured photo to DeepSeek's vision model with explicit user consen
 - Next executable action: implement T8 secure key entry (Android Keystore via `Native\Mobile\Facades\SecureStorage`), then run `fixit:ai-smoke`/home check against the user's real provider.
 
 ### 2026-10-26 — T4 camera compatibility spike
-- Branch/PR: `task/t4-camera-spike` (PR opened from this branch, stacked on T3/#6).
+- Branch/PR: `task/t4-camera-spike` (PR #7, stacked on T3/#6).
 - Changed files: added `nativephp/mobile-camera` 1.1.0 and registered `CameraServiceProvider`; extended `Home` with `takePhoto()` and camera event handlers (`PhotoTaken`, `PhotoCancelled`, `PermissionDenied`); added the camera card and preview to `resources/views/native/home.blade.php`; added camera tests to `tests/Feature/HomeTest.php`; updated `docs/DEVELOPMENT.md`, `docs/STATUS.md`, `docs/TASKS.md`; added `docs/evidence/2026-10-26-android-emulator-camera.png`.
 - Implemented: explicit “Take a photo” action using `Camera::getPhoto()->start()`, runtime permission handling, photo preview from the app-private file path, and cancellation/denial messages.
 - Verified (command, environment/device, result):
