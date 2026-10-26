@@ -2,7 +2,7 @@
 
 Android-only AI-guided repair assistant. NativePHP + Laravel, standalone Symfony AI packages, local SQLite and a user-supplied model key.
 
-> **Status:** bootstrap stage. The Laravel/NativePHP project is set up, tested on the host, builds/launches on an Android emulator, completes a Symfony AI round-trip against a local OpenAI-compatible fake provider, and captures a photo through the native camera into app-private storage. It has not yet run on a physical device, called a real provider, or sent a photo to a vision model. See [docs/STATUS.md](docs/STATUS.md) and [docs/TASKS.md](docs/TASKS.md).
+> **Status:** bootstrap stage. The Laravel/NativePHP project is set up, tested on the host, builds/launches on an Android emulator, completes a Symfony AI round-trip against a local OpenAI-compatible fake provider, captures a photo through the native camera into app-private storage, and stores a user-entered provider key securely from Settings. It has not yet run on a physical device, called real DeepSeek, or sent a photo to a vision model. See [docs/STATUS.md](docs/STATUS.md) and [docs/TASKS.md](docs/TASKS.md).
 
 ## Quick start
 

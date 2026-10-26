@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 return [
     /*
-    | OpenAI-compatible endpoint (OpenAI, OpenRouter, Ollama, LM Studio, ...).
-    | The generic Symfony AI bridge appends /v1/chat/completions.
+    | DeepSeek's OpenAI-compatible endpoint. The generic Symfony AI bridge
+    | appends /v1/chat/completions; DeepSeek also serves /chat/completions,
+    | so the bridge talks to https://api.deepseek.com/v1/chat/completions.
+    |
+    | Override with any OpenAI-compatible provider if needed.
     */
-    'base_url' => rtrim((string) env('FIXIT_AI_BASE_URL', 'https://api.openai.com'), '/'),
+    'base_url' => rtrim((string) env('FIXIT_AI_BASE_URL', 'https://api.deepseek.com'), '/'),
 
     /*
-    | Development-only key source. Release builds must use the in-app secure
-    | storage flow (T8) instead; never commit a real key or bundle it in an APK.
+    | deepseek-flash accepts text and images through the same chat endpoint.
     */
-    'api_key' => env('FIXIT_AI_API_KEY'),
+    'model' => env('FIXIT_AI_MODEL', 'deepseek-flash'),
 
-    'model' => env('FIXIT_AI_MODEL', 'gpt-4o-mini'),
+    'provider_name' => env('FIXIT_AI_PROVIDER_NAME', 'DeepSeek'),
 
-    'timeout' => (int) env('FIXIT_AI_TIMEOUT', 30),
+    'timeout' => (int) env('FIXIT_AI_TIMEOUT', 60),
 ];

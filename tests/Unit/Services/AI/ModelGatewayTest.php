@@ -11,6 +11,7 @@ use Symfony\AI\Platform\Provider;
 use Symfony\AI\Platform\Test\MockModelClient;
 use Symfony\AI\Platform\Test\MockPlatformFactory;
 use Symfony\AI\Platform\Test\MockResultConverter;
+use Tests\Support\InMemoryApiKeyStore;
 use Tests\TestCase;
 
 uses(TestCase::class);
@@ -18,7 +19,7 @@ uses(TestCase::class);
 it('returns model text through the gateway', function () {
     $platform = MockPlatformFactory::createPlatform('FixIt AI connectivity OK');
 
-    $gateway = new ModelGateway($platform, 'test-model');
+    $gateway = new ModelGateway(new InMemoryApiKeyStore('test-key'), $platform, 'test-model');
 
     expect($gateway->ask('ping'))->toBe('FixIt AI connectivity OK');
 });
@@ -29,26 +30,24 @@ it('sends the prompt through Symfony AI', function () {
         new Provider('mock', [$client], [new MockResultConverter], new FallbackModelCatalog),
     ]);
 
-    $gateway = new ModelGateway($platform, 'test-model');
+    $gateway = new ModelGateway(new InMemoryApiKeyStore('test-key'), $platform, 'test-model');
     $gateway->ask('ping');
 
     expect($client->getCalls())->toHaveCount(1);
     expect($client->getCalls()[0]['model']->getName())->toBe('test-model');
 });
 
-it('fails safely when no api key is configured', function () {
-    config(['ai.api_key' => null, 'ai.base_url' => 'https://example.test']);
-
-    $gateway = new ModelGateway;
+it('fails safely when the secure key store is empty', function () {
+    $gateway = new ModelGateway(new InMemoryApiKeyStore);
 
     expect(fn () => $gateway->ask('ping'))->toThrow(MissingApiKeyException::class);
 });
 
 it('fails safely when no model is configured', function () {
-    config(['ai.model' => '', 'ai.api_key' => 'test-key']);
+    config(['ai.model' => '']);
 
     $platform = MockPlatformFactory::createPlatform('unused');
-    $gateway = new ModelGateway($platform);
+    $gateway = new ModelGateway(new InMemoryApiKeyStore('test-key'), $platform);
 
     expect(fn () => $gateway->ask('ping'))->toThrow(AiRequestFailedException::class);
 });
@@ -58,7 +57,7 @@ it('wraps provider failures without leaking provider details', function () {
         throw new RuntimeException('secret provider response body');
     });
 
-    $gateway = new ModelGateway($platform, 'test-model');
+    $gateway = new ModelGateway(new InMemoryApiKeyStore('test-key'), $platform, 'test-model');
 
     try {
         $gateway->ask('ping');

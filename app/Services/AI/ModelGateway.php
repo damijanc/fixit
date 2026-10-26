@@ -12,13 +12,14 @@ use Symfony\Component\HttpClient\HttpClient;
 /**
  * Thin application boundary around Symfony AI.
  *
- * The platform is injectable so tests never touch the network. Provider keys
- * are supplied by the caller/config for now; T8 replaces this with Android
- * Keystore-backed secure storage.
+ * The platform is injectable so tests never touch the network. The provider
+ * key always comes from on-device secure storage (T8); no key is read from
+ * .env or bundled config.
  */
 final class ModelGateway
 {
     public function __construct(
+        private readonly ApiKeyStore $keyStore,
         private readonly ?PlatformInterface $platform = null,
         private readonly ?string $model = null,
     ) {}
@@ -52,7 +53,7 @@ final class ModelGateway
 
     private function platformFromConfig(): PlatformInterface
     {
-        $apiKey = config('ai.api_key');
+        $apiKey = $this->keyStore->get();
         if (! is_string($apiKey) || trim($apiKey) === '') {
             throw MissingApiKeyException::forProvider();
         }
@@ -62,7 +63,7 @@ final class ModelGateway
             throw AiRequestFailedException::unreachable(new \RuntimeException('Missing AI base URL.'));
         }
 
-        $timeout = max(1, (int) config('ai.timeout', 30));
+        $timeout = max(1, (int) config('ai.timeout', 60));
 
         return Factory::createPlatform(
             $baseUrl,

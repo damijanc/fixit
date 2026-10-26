@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\AI\ApiKeyStore;
+use App\Services\AI\EncryptedFileApiKeyStore;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +17,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(
+            ApiKeyStore::class,
+            fn (): EncryptedFileApiKeyStore => new EncryptedFileApiKeyStore(EncryptedFileApiKeyStore::defaultPath()),
+        );
     }
 
     /**
