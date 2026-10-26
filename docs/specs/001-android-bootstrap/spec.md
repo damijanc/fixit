@@ -35,4 +35,4 @@ T1 implemented and verified on 2026-10-26:
 - Host tests pass (8 tests, 81 assertions).
 - `php artisan native:run android` built a 101 MB debug APK and launched `com.fixit.app` on a `Pixel_9a` emulator (Android 17 / API 37). Screenshot in `docs/evidence/2026-10-26-android-emulator-home.png`.
 
-Remaining for this spec: T2 still needs a **physical** device. `php artisan native:build` is iOS-only; use `php artisan native:run android` for Android debug builds.
+Remaining for this spec: T2 on a **physical** device is deferred by decision on 2026-10-26 until the build is ready to try; emulator verification is complete. `php artisan native:build` is iOS-only; use `php artisan native:run android` for Android debug builds.

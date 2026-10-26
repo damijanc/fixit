@@ -5,7 +5,7 @@ Use PLANNED, IN_PROGRESS, IMPLEMENTED, VERIFIED or BLOCKED. Only VERIFIED means 
 | ID | Priority | Status | Task / acceptance |
 |---|---|---|---|
 | T1 | P0 | VERIFIED | Bootstrap from clean checkout; document exact working commands and versions — verified 2026-10-26 (host tests + emulator build) |
-| T2 | P0 | BLOCKED | Build APK and launch on a physical Android device — emulator build/launch verified; blocked on physical device |
+| T2 | P0 | IN_PROGRESS | Build APK and launch on Android — emulator VERIFIED (Pixel_9a, API 37); physical device deferred until build ready |
 | T3 | P0 | PLANNED | Call a model through Symfony AI from Android embedded PHP |
 | T4 | P0 | PLANNED | Capture photo and send to vision model with consent |
 | T5 | P1 | PLANNED | SQLite repair sessions survive restart |
