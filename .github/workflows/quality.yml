@@ -1,0 +1,14 @@
+name: Skeleton quality
+on:
+  push:
+  pull_request:
+jobs:
+  shell-and-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate bootstrap script syntax
+        run: bash -n scripts/bootstrap.sh
+      - name: Check PHP syntax for skeleton files
+        run: find stubs -name '*.php' -print0 | xargs -0 -r -n1 php -l
+# APK packaging will be added after validation on a real Android device.
