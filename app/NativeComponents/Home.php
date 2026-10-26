@@ -1,26 +1,40 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\NativeComponents;
 
+use App\Services\AI\AiException;
+use App\Services\AI\ModelGateway;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
-use Native\Mobile\Facades\Browser;
 
 class Home extends NativeComponent
 {
-    public function openDocs(): void
-    {
-        Browser::inApp('https://nativephp.com/docs/mobile');
-    }
+    public string $aiStatus = '';
 
-    public function openDiscord(): void
-    {
-        Browser::open('https://discord.gg/nativephp');
-    }
+    public bool $aiBusy = false;
 
-    public function openGitHub(): void
+    public function testAiConnection(): void
     {
-        Browser::open('https://github.com/NativePHP');
+        if ($this->aiBusy) {
+            return;
+        }
+
+        $this->aiBusy = true;
+        $this->aiStatus = 'Contacting the model…';
+
+        try {
+            $reply = app(ModelGateway::class)->ask('Reply with exactly: FixIt AI connectivity OK');
+            $this->aiStatus = 'OK: '.$reply;
+        } catch (AiException $exception) {
+            $this->aiStatus = $exception->getMessage();
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->aiStatus = 'Unexpected error while contacting the model.';
+        } finally {
+            $this->aiBusy = false;
+        }
     }
 
     public function render(): View

@@ -9,7 +9,7 @@ Android / NativePHP (embedded Laravel + PHP)
         └── HTTPS → user-selected vision-capable model
 ```
 
-No separate Symfony server. Running Symfony AI within NativePHP's embedded Android PHP runtime remains an **unverified compatibility assumption**.
+No separate Symfony server. Running Symfony AI within NativePHP's embedded Android PHP runtime was **verified on an emulator on 2026-10-26** against a local OpenAI-compatible fake provider (real provider credentials still pending secure storage). The integration uses the standalone `symfony/ai-agent`, `symfony/ai-platform` and `symfony/ai-generic-platform` packages with an injectable platform for mock-based tests.
 
 ## Responsibilities
 - NativePHP: Android integration and UI

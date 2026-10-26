@@ -66,6 +66,50 @@ composer test
 
 Tests use in-memory SQLite and `.env.testing`; no device is needed.
 
+## AI provider smoke test
+
+The app talks to any OpenAI-compatible endpoint through Symfony AI's generic bridge (`{base_url}/v1/chat/completions`).
+
+Configuration (non-secret):
+
+```dotenv
+FIXIT_AI_BASE_URL=https://api.openai.com
+FIXIT_AI_MODEL=gpt-4o-mini
+FIXIT_AI_TIMEOUT=30
+```
+
+**Do not put a real API key in `.env` for an Android build.** NativePHP bundles `.env` into the APK. `FIXIT_AI_API_KEY` exists only for local host testing until T8 adds Android Keystore-backed key entry.
+
+Host check against the bundled fake provider:
+
+```bash
+php -S 0.0.0.0:8099 scripts/dev/fake-openai-server.php
+FIXIT_AI_BASE_URL=http://127.0.0.1:8099 \
+FIXIT_AI_MODEL=fixit-fake \
+FIXIT_AI_API_KEY=test-key \
+php artisan fixit:ai-smoke
+# => FixIt AI connectivity OK
+```
+
+Emulator check:
+
+```bash
+# terminal 1: fake provider on the host
+php -S 0.0.0.0:8099 scripts/dev/fake-openai-server.php
+
+# .env: point at the emulator host alias
+FIXIT_AI_BASE_URL=http://10.0.2.2:8099
+FIXIT_AI_MODEL=fixit-fake
+FIXIT_AI_API_KEY=test-key
+
+php artisan native:run android emulator-5554 --no-tty --no-vite
+```
+
+Then tap **Test AI connection** on the home screen. A successful call shows `OK: FixIt AI connectivity OK`. Evidence: [evidence/2026-10-26-android-emulator-ai-ok.png](evidence/2026-10-26-android-emulator-ai-ok.png).
+
+A real provider call from the emulator is intentionally deferred until T8: the key must come from secure on-device storage instead of the bundled `.env`.
+
+
 ## Run on Android
 
 Debug build, install and launch on the connected device:
