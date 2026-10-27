@@ -6,27 +6,28 @@ Updated: 2026-10-27
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `task/t3-deepseek-diagnostics` (PR #10; camera UX is PR #9).
+- Active branch: `task/t4-vision-consent` (vision consent + real image request).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 27 tests, 134 assertions.
+- Host test suite: VERIFIED — 33 tests, 186 assertions.
 - Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37) and on a physical **ZTE 8050** (Android 13 / API 33, arm64, serial `LZV50SDEDC3001352`), package `com.fixit.app`.
 - Symfony AI in embedded Android PHP: **VERIFIED with a real DeepSeek call** on the physical ZTE 8050 — `deepseek-flash` returned `FixIt AI connectivity OK`.
 - Camera capture in embedded Android PHP: **VERIFIED on emulator and physical ZTE 8050** — permission prompt, system camera, JPEG written to app-private storage, path returned to PHP and preview rendered. Physical capture: **3072×4032 JPEG, 2.4 MB**. Physical-device photo intentionally not committed.
 - Camera confirmation UX: explicit “tap ✓ to confirm” hint and clearer cancel message after physical-test feedback (PR #9). Evidence: `docs/evidence/2026-10-27-zte-camera-confirmation-hint.png`, `docs/evidence/2026-10-27-zte-camera-cancel-message.png`.
+- Vision upload + consent: **VERIFIED** — explicit “Send photo to DeepSeek” action, no upload on capture/cancel, base64 image data URL sent through Symfony AI. Emulator fake-provider result: `docs/evidence/2026-10-27-emulator-vision-fake.png`; physical ZTE real `deepseek-flash` image response received and rendered. Physical screenshot withheld because it showed personal content.
 - Provider: **DeepSeek** (`https://api.deepseek.com`, `deepseek-flash`, vision-capable) is the configured default.
 - Secure provider key: **VERIFIED** — entered in Settings on emulator and physical ZTE, encrypted at rest with the Keystore-managed `APP_KEY`, absent from `.env` and the APK; remove works. ADR 0003. Keys must include the `sk-` prefix; the app now rejects keys without it.
 - FixIt home + provider settings screens: IMPLEMENTED and tested on emulator + physical ZTE.
-- Sessions, safety checks, vision upload, diagnosis/result/history screens: PLANNED.
+- Sessions, safety checks, symptoms/multi-turn diagnosis and result/history screens: PLANNED.
 - CI: PHP test workflow VERIFIED on GitHub Actions; Android CI build still pending (T10).
 
 ## Next step
-T4: explicit consent + send the captured photo to DeepSeek `deepseek-flash` and display the vision result.
+T5/T6: persist repair sessions and add the symptoms + follow-up question flow; then deterministic safety filtering (T7).
 
 ## Known risks
 - Signed CI APK build unimplemented.
 - The official NativePHP SecureStorage plugin requires authenticated plugin access; ADR 0003 uses encrypted file storage with the Keystore-managed `APP_KEY` instead.
-- DeepSeek vision takes base64/URL images via the OpenAI-compatible endpoint; the Symfony AI generic bridge mapping for image content still needs a real test.
+- DeepSeek vision mapping (base64 `image_url`) is verified; vision token cost is bounded (~1024 tokens/image) but not yet metered in-app.
 - The camera plugin uses the Android system camera intent, so confirmation UI is controlled by the OS app; the new hint mitigates but does not remove the hand-off.
 - NativePHP `native:build` is iOS-only; Android uses `native:run`/`native:package`.
 - Host PHP minor must match `nativephp.lock` (currently 8.5.12).
@@ -115,6 +116,19 @@ T4: explicit consent + send the captured photo to DeepSeek `deepseek-flash` and 
 - Not verified: vision/image request; release build. Physical camera confirmation UX is tracked separately in PR #9.
 - Blockers/decisions: provider errors now log safe class/message/code and expose the HTTP status to the user without the response body or key.
 - Next executable action: T4 vision — consent + send the captured image to `deepseek-flash`.
+
+### 2026-10-27 — T4 photo consent + real DeepSeek vision call
+- Branch/PR: `task/t4-vision-consent` (PR #11).
+- Changed files: `ModelGateway` image support + validation; `AiRequestFailedException` image errors; Home consent/preview/analyze/discard UI; `fake-openai-server.php` image detection; tests/fixture; docs/evidence.
+- Implemented: explicit “Send photo to DeepSeek” consent action; no upload on capture/cancel; base64 JPEG data-URL image part through Symfony AI; discard deletes the local photo; provider failures preserve the photo and preview.
+- Verified (command, environment/device, result):
+  - `php artisan test` — 33 passed, 186 assertions.
+  - Emulator `Pixel_9a` against the local fake provider: captured photo, tapped **Send photo to DeepSeek**, fake server detected `image_url`, result rendered. Evidence: `docs/evidence/2026-10-27-emulator-vision-fake.png`.
+  - Physical **ZTE 8050** (Android 13 / API 33): captured photo, explicit send, **real `deepseek-flash` vision response** received and rendered (it identified the object and suggested cautious checks). Physical screenshot withheld because the photo showed personal content.
+  - Cancel/discard flow verified: no upload on capture/cancel; discard deletes the local file.
+- Not verified: symptoms input and multi-turn follow-up (T5/T6); deterministic safety filtering (T7); signed release.
+- Blockers/decisions: the vision request is opt-in per photo; the photo stays in app-private storage until sent. Image size/type validated before send (JPEG/PNG/GIF/WebP, ≤32 MB).
+- Next executable action: T5/T6 — persist sessions and add symptoms + one follow-up question using prior observations.
 
 ## Handoff entry template
 ### YYYY-MM-DD — task

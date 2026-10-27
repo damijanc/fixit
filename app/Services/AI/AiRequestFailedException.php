@@ -41,4 +41,19 @@ final class AiRequestFailedException extends AiException
     {
         return new self('No AI model is configured.');
     }
+
+    public static function imageUnreadable(): self
+    {
+        return new self('The captured photo could not be read. Take the photo again.');
+    }
+
+    public static function imageTooLarge(): self
+    {
+        return new self('The captured photo is empty or larger than the 32 MB upload limit. Take a smaller photo.');
+    }
+
+    public static function imageUnsupported(): self
+    {
+        return new self('The captured photo format is not supported. Use a JPEG, PNG, GIF or WebP image.');
+    }
 }

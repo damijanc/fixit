@@ -27,6 +27,21 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || $path !== '/v1/chat/comp
 $body = json_decode((string) file_get_contents('php://input'), true);
 $model = is_array($body) && is_string($body['model'] ?? null) ? $body['model'] : 'fixit-fake';
 
+$hasImage = false;
+foreach ((array) ($body['messages'] ?? []) as $message) {
+    $content = $message['content'] ?? null;
+    if (! is_array($content)) {
+        continue;
+    }
+
+    foreach ($content as $part) {
+        if (is_array($part) && ($part['type'] ?? null) === 'image_url') {
+            $hasImage = true;
+            break 2;
+        }
+    }
+}
+
 header('Content-Type: application/json');
 
 echo json_encode([
@@ -38,7 +53,9 @@ echo json_encode([
         'index' => 0,
         'message' => [
             'role' => 'assistant',
-            'content' => 'FixIt AI connectivity OK',
+            'content' => $hasImage
+                ? 'Vision check OK: I received the image. This is a synthetic test response, not a diagnosis.'
+                : 'FixIt AI connectivity OK',
         ],
         'finish_reason' => 'stop',
     ]],

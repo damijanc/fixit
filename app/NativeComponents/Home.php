@@ -24,6 +24,12 @@ class Home extends NativeComponent
 
     public string $photoPath = '';
 
+    public string $visionStatus = '';
+
+    public string $visionResult = '';
+
+    public bool $visionBusy = false;
+
     public function testAiConnection(): void
     {
         if ($this->aiBusy) {
@@ -69,6 +75,8 @@ class Home extends NativeComponent
     {
         $this->photoPath = $path;
         $this->cameraStatus = "Photo captured: {$mimeType}, ".basename($path);
+        $this->visionStatus = '';
+        $this->visionResult = '';
     }
 
     #[On(PhotoCancelled::class)]
@@ -81,6 +89,57 @@ class Home extends NativeComponent
     public function handleCameraPermissionDenied(string $action): void
     {
         $this->cameraStatus = "Camera permission denied for {$action}. Enable it in Android settings.";
+    }
+
+    public function discardPhoto(): void
+    {
+        if ($this->photoPath !== '' && is_file($this->photoPath)) {
+            @unlink($this->photoPath);
+        }
+
+        $this->photoPath = '';
+        $this->visionStatus = '';
+        $this->visionResult = '';
+        $this->cameraStatus = 'Photo discarded.';
+    }
+
+    public function analyzePhoto(): void
+    {
+        if ($this->visionBusy) {
+            return;
+        }
+
+        if ($this->photoPath === '' || ! is_file($this->photoPath)) {
+            $this->visionStatus = 'Take a photo before asking DeepSeek to analyze it.';
+
+            return;
+        }
+
+        $this->visionBusy = true;
+        $this->visionStatus = 'Uploading the photo to DeepSeek for analysis…';
+        $this->visionResult = '';
+
+        try {
+            $this->visionResult = app(ModelGateway::class)->askWithImage(
+                $this->visionPrompt(),
+                $this->photoPath,
+            );
+            $this->visionStatus = 'DeepSeek response received. Check every suggestion before acting on it.';
+        } catch (AiException $exception) {
+            $this->visionStatus = $exception->getMessage();
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->visionStatus = 'Unexpected error while analyzing the photo.';
+        } finally {
+            $this->visionBusy = false;
+        }
+    }
+
+    private function visionPrompt(): string
+    {
+        return <<<'PROMPT'
+You are FixIt, a cautious repair assistant. Look at the photo and identify the object and the most likely fault. Ask at most one diagnostic question. Suggest only low-risk, non-invasive checks. Never tell the user to open mains-powered devices, service gas equipment, bypass interlocks, or perform hazardous tests. Escalate to a qualified professional when appropriate. Keep the response under 120 words and state uncertainty.
+PROMPT;
     }
 
     public function render(): View
