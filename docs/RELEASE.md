@@ -64,8 +64,8 @@ Verify:
 
 ## Verified
 
+- GitHub Actions run `40487118046` (2026-10-27): Ubuntu, PHP 8.5, JDK 17, Android SDK 36 — signed release APK built, `apksigner`-verified and uploaded as `fixit-android-release-apk` (~8.5 min).
 - A local signed release APK built on macOS with JDK 17 / SDK 36 and installed/launched on the `Pixel_9a` emulator (2026-10-27).
-- CI workflow added but not yet observed passing on GitHub at the time of writing.
 - Physical-device install of the release build is still pending.
 
 ## Versioning

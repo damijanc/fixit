@@ -19,18 +19,19 @@ Updated: 2026-10-27
 - Deterministic safety filtering: **VERIFIED** by unit + UI tests — hazardous instructions are blocked before display; mains/gas mentions escalate; blocked raw text is not stored.
 - Screens: **VERIFIED on emulator** — Home landing, Diagnosis, Result and History with navigation and saved-session lists. Evidence: `docs/evidence/2026-10-27-emulator-home-screens.png`, `...-history.png`, `...-result-screen.png`.
 - Android release build: **local signed release APK VERIFIED** — 76.77 MB, `apksigner` certificate checked, installed and launched on the `Pixel_9a` emulator. Built with an ephemeral local keystore.
-- Android CI: `.github/workflows/android.yml` added (signed release APK artifact, secrets or ephemeral CI key); GitHub run not yet observed.
+- Android CI: **VERIFIED** — GitHub Actions run 40487118046 built, `apksigner`-verified and uploaded a signed release APK on Ubuntu with JDK 17 / Android SDK 36 (2026-10-27). Uses repository secrets when available, otherwise an ephemeral CI key.
 - Release docs: `docs/JUDGE_GUIDE.md`, `docs/RELEASE.md`, `docs/DEMO.md`, `scripts/build-release.sh` added. Demo video not recorded.
 - Provider: **DeepSeek** (`https://api.deepseek.com`, `deepseek-flash`, vision-capable) is the configured default.
 - Secure provider key: **VERIFIED** — entered in Settings, encrypted at rest with the Keystore-managed `APP_KEY`, absent from `.env` and the APK; remove works. ADR 0003. Keys must include the `sk-` prefix.
-- Remaining: CI run verification, stable release-signing secrets, physical install of the release APK, demo video.
-- CI: PHP test workflow VERIFIED on GitHub Actions; Android CI build pending first run.
+- Remaining: stable release-signing secrets, physical install of the release APK, demo video; physical pass of the new screens.
+- CI: PHP tests + Android release build VERIFIED on GitHub Actions.
 
 ## Next step
-T10/T11: observe the first Android CI run, add stable signing secrets if desired, install the release APK on the ZTE, and record the demo video. Physical-device pass of the new screens remains desirable.
+T11: configure stable signing secrets, install the release APK on the ZTE, and record the 90-second demo. Physical pass of the Home/Diagnosis/Result/History screens remains desirable.
 
 ## Known risks
-- Android CI workflow has not run yet; Gradle/SDK setup may need adjustment.
+- CI release artifacts use an ephemeral key unless `ANDROID_KEYSTORE_BASE64` and password/alias secrets are configured.
+- Physical-device install of the signed release APK is not yet verified.
 - The official NativePHP SecureStorage plugin requires authenticated plugin access; ADR 0003 uses encrypted file storage with the Keystore-managed `APP_KEY` instead.
 - DeepSeek vision mapping (base64 `image_url`) is verified; vision token cost is bounded (~1024 tokens/image) but not yet metered in-app.
 - The camera plugin uses the Android system camera intent, so confirmation UI is controlled by the OS app; the new hint mitigates but does not remove the hand-off.
@@ -191,6 +192,17 @@ T10/T11: observe the first Android CI run, add stable signing secrets if desired
 - Not verified: first GitHub Actions Android run; stable release signing identity; physical-device release install; demo video.
 - Blockers/decisions: NativePHP's release-build warning says “unsigned” even when `apksigner` confirms signing; treated as a false warning but noted. CI falls back to an ephemeral keystore when secrets are absent, so artifact identity is not stable.
 - Next executable action: observe the Android workflow, add `ANDROID_KEYSTORE_BASE64`/passwords/alias secrets for a stable identity, install on the ZTE, record the demo.
+
+### 2026-10-27 — Android CI first successful run
+- Branch/PR: `task/t10-android-ci` (PR #16).
+- Changed files: `.github/workflows/android.yml` (setup-android v4 after v3's removed `tools` package); STATUS/TASKS/spec 005/RELEASE.
+- Implemented: fixed the CI SDK setup; no app code changes.
+- Verified (command, environment/device, result):
+  - GitHub Actions run `40487118046` — Ubuntu, PHP 8.5, JDK 17, Android SDK 36 — **success** in ~8.5 min. Built a signed release APK, verified it with `apksigner`, uploaded the artifact.
+  - `PHP tests` job passed in the same run.
+- Not verified: stable signing identity (still ephemeral without secrets); physical install of the release APK; demo video.
+- Blockers/decisions: `android-actions/setup-android@v3` fails on the removed `tools` package; v4 is required.
+- Next executable action: configure signing secrets, install the release APK on the ZTE, record the demo.
 
 ## Handoff entry template
 ### YYYY-MM-DD — task
