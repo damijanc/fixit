@@ -43,6 +43,18 @@ it('saves a key typed into the secure field', function () {
     expect($store->get())->toBe('sk-typed-in-the-ui-123');
 });
 
+it('rejects a key without the sk- prefix before storing it', function () {
+    $store = new InMemoryApiKeyStore;
+    app()->instance(ApiKeyStore::class, $store);
+
+    Native::visit('/settings')
+        ->set('apiKey', 'fixit-secure-test-without-prefix')
+        ->tap('save-key-button')
+        ->assertSee('DeepSeek keys start with "sk-"');
+
+    expect($store->get())->toBeNull();
+});
+
 it('tests the connection with the saved key', function () {
     $store = new InMemoryApiKeyStore('sk-fixit-secure-test-123');
     app()->instance(ApiKeyStore::class, $store);

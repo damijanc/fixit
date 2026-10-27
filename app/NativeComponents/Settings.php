@@ -26,9 +26,16 @@ class Settings extends NativeComponent
     public function saveKey(): void
     {
         $key = trim($this->apiKey);
+        $prefix = (string) config('ai.key_prefix', 'sk-');
 
         if (mb_strlen($key) < 8) {
             $this->status = 'Enter a valid provider API key first.';
+
+            return;
+        }
+
+        if ($prefix !== '' && ! str_starts_with($key, $prefix)) {
+            $this->status = "DeepSeek keys start with \"{$prefix}\". Paste the full key, including the prefix.";
 
             return;
         }

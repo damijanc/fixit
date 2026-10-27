@@ -41,7 +41,13 @@ final class ModelGateway
         } catch (AiException $exception) {
             throw $exception;
         } catch (\Throwable $exception) {
-            throw AiRequestFailedException::unreachable($exception);
+            logger()->warning('AI request failed', [
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+                'code' => $exception->getCode(),
+            ]);
+
+            throw AiRequestFailedException::fromProvider($exception);
         }
 
         if (! is_string($content) || trim($content) === '') {

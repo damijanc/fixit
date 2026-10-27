@@ -71,3 +71,23 @@ it('wraps provider failures without leaking provider details', function () {
 
     $this->fail('Expected an AiRequestFailedException.');
 });
+
+it('surfaces the provider HTTP status without leaking the response body', function () {
+    $platform = MockPlatformFactory::createPlatform(static function (): never {
+        throw new RuntimeException('Unauthorized: secret upstream body', 401);
+    });
+
+    $gateway = new ModelGateway(new InMemoryApiKeyStore('test-key'), $platform, 'test-model');
+
+    try {
+        $gateway->ask('ping');
+    } catch (AiRequestFailedException $exception) {
+        expect($exception->getMessage())
+            ->toContain('401')
+            ->not->toContain('secret upstream body');
+
+        return;
+    }
+
+    $this->fail('Expected an AiRequestFailedException.');
+});
