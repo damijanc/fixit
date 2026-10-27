@@ -64,3 +64,51 @@ it('explains the confirmation step when no photo is returned', function () {
         ->assertSee('No photo received')
         ->assertSee('tap the ✓ checkmark on the camera review screen');
 });
+
+it('requires an explicit action before uploading the photo', function () {
+    app()->instance(ModelGateway::class, new ModelGateway(
+        new InMemoryApiKeyStore('test-key'),
+        MockPlatformFactory::createPlatform('I can see a blue test image.'),
+        'deepseek-flash',
+    ));
+
+    Native::visit('/')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->assertSee('Sending uploads this photo to DeepSeek')
+        ->assertSee('Send photo to DeepSeek')
+        ->tap('analyze-photo-button')
+        ->assertSee('DeepSeek response received')
+        ->assertSee('I can see a blue test image.')
+        ->assertElement('image', fn (array $node): bool => ($node['ref'] ?? null) === 'captured-photo');
+});
+
+it('keeps the photo when the vision request fails', function () {
+    app()->instance(ModelGateway::class, new ModelGateway(
+        new InMemoryApiKeyStore('test-key'),
+        MockPlatformFactory::createPlatform(static function (): never {
+            throw new RuntimeException('provider failure', 402);
+        }),
+        'deepseek-flash',
+    ));
+
+    Native::visit('/')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->tap('analyze-photo-button')
+        ->assertSee('insufficient balance')
+        ->assertElement('image', fn (array $node): bool => ($node['ref'] ?? null) === 'captured-photo');
+});
+
+it('discards the photo from the device', function () {
+    $temporaryBase = tempnam(sys_get_temp_dir(), 'fixit-photo-');
+    $temporaryPhoto = $temporaryBase.'.jpg';
+    copy(base_path('tests/Fixtures/vision-photo.jpg'), $temporaryPhoto);
+    @unlink($temporaryBase);
+
+    Native::visit('/')
+        ->call('handlePhotoTaken', $temporaryPhoto, 'image/jpeg')
+        ->tap('discard-photo-button')
+        ->assertSee('Photo discarded.')
+        ->assertMissingElement('image', fn (array $node): bool => ($node['ref'] ?? null) === 'captured-photo');
+
+    expect(is_file($temporaryPhoto))->toBeFalse();
+});

@@ -159,6 +159,27 @@ Notes:
 - Photos are not uploaded anywhere yet. T4 must add explicit consent before any image leaves the device.
 - Emulator camera must be configured (`hw.camera.back=virtualscene` or a host webcam); a device with no camera reports capture failure.
 
+## Vision request (T4)
+
+After a photo is captured, the app shows a preview and an explicit consent action:
+
+- **Send photo to DeepSeek** uploads the photo and prompt for analysis.
+- **Discard photo** deletes the local file.
+- Capturing or cancelling the camera never uploads anything.
+- If the provider fails, the photo and preview stay on screen and a safe error is shown.
+
+The provider key is read from Settings; the image is sent as a base64 `image_url` data URL through Symfony AI to `deepseek-flash`. Accepted formats: JPEG, PNG, GIF, WebP; max 32 MB.
+
+Verified 2026-10-27:
+
+- Emulator + local fake provider: the fake server detected the `image_url` part and returned a test response. Evidence: [evidence/2026-10-27-emulator-vision-fake.png](evidence/2026-10-27-emulator-vision-fake.png).
+- Physical **ZTE 8050**: real `deepseek-flash` image response received and rendered.
+- Failure path: simulated 402 preserved the photo/preview and showed a safe balance error.
+- `php artisan test`: 33 passed, 186 assertions.
+
+A separate symptoms field is not in the current screen; it is planned with the session/follow-up work (T5/T6).
+
+
 
 
 ## Run on Android

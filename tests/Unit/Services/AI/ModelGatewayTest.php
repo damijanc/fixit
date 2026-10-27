@@ -91,3 +91,35 @@ it('surfaces the provider HTTP status without leaking the response body', functi
 
     $this->fail('Expected an AiRequestFailedException.');
 });
+
+it('sends an image as a base64 data URL for vision', function () {
+    $client = new MockModelClient('I see a small blue test image.');
+    $platform = new Platform([
+        new Provider('mock', [$client], [new MockResultConverter], new FallbackModelCatalog),
+    ]);
+
+    $gateway = new ModelGateway(new InMemoryApiKeyStore('test-key'), $platform, 'deepseek-flash');
+
+    $reply = $gateway->askWithImage(
+        'What is in this photo?',
+        base_path('tests/Fixtures/vision-photo.jpg'),
+    );
+
+    expect($reply)->toBe('I see a small blue test image.');
+    expect($client->getCalls())->toHaveCount(1);
+
+    $payload = json_encode($client->getCalls()[0]['payload']);
+
+    expect($payload)
+        ->toContain('image_url')
+        ->toContain('data:image')
+        ->toContain('base64,')
+        ->toContain('What is in this photo?');
+});
+
+it('rejects an unreadable image before sending it', function () {
+    $gateway = new ModelGateway(new InMemoryApiKeyStore('test-key'), MockPlatformFactory::createPlatform('unused'), 'deepseek-flash');
+
+    expect(fn () => $gateway->askWithImage('What is this?', '/does/not/exist.jpg'))
+        ->toThrow(AiRequestFailedException::class, 'could not be read');
+});

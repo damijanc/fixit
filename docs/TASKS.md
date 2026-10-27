@@ -7,7 +7,7 @@ Use PLANNED, IN_PROGRESS, IMPLEMENTED, VERIFIED or BLOCKED. Only VERIFIED means 
 | T1 | P0 | VERIFIED | Bootstrap from clean checkout; document exact working commands and versions — verified 2026-10-26 (host tests + emulator build) |
 | T2 | P0 | VERIFIED | Build APK and launch on Android — emulator + physical ZTE 8050 (Android 13) verified 2026-10-27 |
 | T3 | P0 | VERIFIED | Call a model through Symfony AI from Android embedded PHP — real DeepSeek `deepseek-flash` call VERIFIED on physical ZTE 8050 (2026-10-27) |
-| T4 | P0 | IN_PROGRESS | Capture photo and send to vision model with consent — camera capture VERIFIED on emulator + physical ZTE; confirmation UX hint added; vision upload/consent pending |
+| T4 | P0 | VERIFIED | Capture photo and send to vision model with consent — camera + consent + real DeepSeek `deepseek-flash` image response VERIFIED on emulator and physical ZTE (2026-10-27) |
 | T5 | P1 | PLANNED | SQLite repair sessions survive restart |
 | T6 | P1 | PLANNED | Multi-turn diagnostic questions use prior observations |
 | T7 | P1 | PLANNED | Deterministic safety filtering and escalation |
