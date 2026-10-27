@@ -1,33 +1,33 @@
 # FixIt status
 
-Updated: 2026-10-26
+Updated: 2026-10-27
 
 ## Current state
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `task/t8-secure-key-settings` (stacked on T4/#7).
+- Active branch: `task/t4-camera-confirmation-ux` (stacked on T8/#8).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 25 tests, 124 assertions.
-- Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37), package `com.fixit.app`.
-- Physical-device build/launch: DEFERRED by decision on 2026-10-26; continue development and testing on the emulator, re-check on a real device once the build is ready to try.
+- Host test suite: VERIFIED — 26 tests, 134 assertions.
+- Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37) and on a physical **ZTE 8050** (Android 13 / API 33, arm64, serial `LZV50SDEDC3001352`), package `com.fixit.app`.
 - Symfony AI in embedded Android PHP: VERIFIED on the emulator against a local OpenAI-compatible fake provider; a real DeepSeek call is pending only a user-entered key.
-- Camera capture in embedded Android PHP: **VERIFIED** on the emulator — permission prompt, system camera, 1440×1920 JPEG written to app-private storage, path returned to PHP and preview rendered. Evidence: `docs/evidence/2026-10-26-android-emulator-camera.png`.
+- Camera capture in embedded Android PHP: **VERIFIED on emulator and physical ZTE 8050** — permission prompt, system camera, JPEG written to app-private storage, path returned to PHP and preview rendered. Physical capture: **3072×4032 JPEG, 2.4 MB**. Physical-device screenshot withheld because it contained personal content.
+- Camera confirmation UX: added an explicit “tap ✓ to confirm” hint and a clearer cancel message after physical-test feedback (PR #9). Evidence: `docs/evidence/2026-10-27-zte-camera-confirmation-hint.png` and `...-camera-cancel-message.png`.
 - Provider: **DeepSeek** (`https://api.deepseek.com`, `deepseek-flash`, vision-capable) is the configured default.
-- Secure provider key: **VERIFIED** on the emulator — entered in Settings, stored as AES ciphertext in app-private storage using the Keystore-managed `APP_KEY`, persisted across restart, absent from `.env` and the APK; remove works. ADR 0003.
-- FixIt home + provider settings screens: IMPLEMENTED and emulator-tested.
+- Secure provider key: **VERIFIED on emulator** — entered in Settings, stored as AES ciphertext in app-private storage using the Keystore-managed `APP_KEY`, persisted across restart, absent from `.env` and the APK; remove works. ADR 0003. Physical-device key entry not yet repeated.
+- FixIt home + provider settings screens: IMPLEMENTED and emulator-tested; physical camera flow tested.
 - Sessions, safety checks, vision upload, diagnosis/result/history screens: PLANNED.
 - CI: PHP test workflow VERIFIED on GitHub Actions; Android CI build still pending (T10).
 
 ## Next step
-T4: send the captured photo to DeepSeek `deepseek-flash` with explicit user consent and show the vision result. A real DeepSeek text call can be made as soon as a key is entered in Settings. Physical-device T2 verification is deferred until the build is ready to try on hardware.
+T4: send the captured photo to DeepSeek `deepseek-flash` with explicit user consent and show the vision result. A real DeepSeek text call can be made as soon as a key is entered in Settings on either device.
 
 ## Known risks
-- Physical-device behaviour (embedded PHP, WebView, camera, permissions) is still unproven.
 - Signed CI APK build unimplemented.
 - The official NativePHP SecureStorage plugin requires authenticated plugin access; ADR 0003 uses encrypted file storage with the Keystore-managed `APP_KEY` instead.
 - DeepSeek vision takes base64/URL images via the OpenAI-compatible endpoint; the Symfony AI generic bridge mapping for image content still needs a real test.
+- The camera plugin uses the Android system camera intent, so confirmation UI is controlled by the OS app; the new hint mitigates but does not remove the hand-off.
 - NativePHP `native:build` is iOS-only; Android uses `native:run`/`native:package`.
 - Host PHP minor must match `nativephp.lock` (currently 8.5.12).
 
@@ -87,6 +87,21 @@ T4: send the captured photo to DeepSeek `deepseek-flash` with explicit user cons
 - Not verified: real DeepSeek call (needs the user's key); physical device; vision upload.
 - Blockers/decisions: the official `nativephp/mobile-secure-storage` plugin requires authenticated plugin access (HTTP 401), so ADR 0003 uses Laravel `Crypt` with the NativePHP Keystore-managed `APP_KEY` and app-private ciphertext. The input must use live `native:model` sync; `.blur` can race the Save action.
 - Next executable action: enter a real DeepSeek key in Settings and tap Test connection; then build T4 vision upload.
+
+### 2026-10-27 — T2 physical device + camera confirmation UX
+- Branch/PR: `task/t4-camera-confirmation-ux` (PR #9, based on merged T8/main).
+- Changed files: `app/NativeComponents/Home.php`, `resources/views/native/home.blade.php`, `tests/Feature/HomeTest.php`; docs and evidence updates.
+- Implemented: explicit “take the photo and tap ✓ to confirm” hint; clearer no-photo/cancel message explaining the system camera review step.
+- Verified (command, environment/device, result):
+  - `adb devices -l` — physical `ZTE 8050`, Android 13 / API 33, arm64, serial `LZV50SDEDC3001352`.
+  - `php artisan native:run android LZV50SDEDC3001352 --no-tty --no-vite` — APK built, installed and launched `com.fixit.app` on the phone.
+  - Camera permission + system camera + capture worked on the phone; photo preview rendered and PHP received the path. Pulled file: **JPEG 3072×4032, 2.4 MB**.
+  - Cancel flow on the phone now shows `No photo received. Take the photo, then tap the ✓ checkmark on the camera review screen.`
+  - `php artisan test` — 26 passed, 134 assertions.
+  - Evidence: `docs/evidence/2026-10-27-zte-camera-confirmation-hint.png`, `docs/evidence/2026-10-27-zte-camera-cancel-message.png`. The captured personal photo is intentionally not committed.
+- Not verified: real DeepSeek key entry/call on the physical phone; vision upload; release build.
+- Blockers/decisions: the camera plugin hands off to the Android system camera, so the confirmation UI is OS-owned. A custom in-app camera is deferred; the hint fixes the immediate confusion. **T2 is now VERIFIED on a named physical device.**
+- Next executable action: T4 — explicit consent + image request to DeepSeek `deepseek-flash` on the physical phone.
 
 ## Handoff entry template
 ### YYYY-MM-DD — task

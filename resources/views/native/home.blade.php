@@ -74,6 +74,10 @@
             Take a photo
         </native:button>
 
+        <text ref="camera-hint" class="mt-3 text-xs text-theme-on-surface-variant">
+            In the camera app, take the photo and tap the ✓ checkmark to confirm. FixIt only receives the photo after that.
+        </text>
+
         @if ($photoPath !== '')
             <image
                 ref="captured-photo"

@@ -5,9 +5,9 @@ Use PLANNED, IN_PROGRESS, IMPLEMENTED, VERIFIED or BLOCKED. Only VERIFIED means 
 | ID | Priority | Status | Task / acceptance |
 |---|---|---|---|
 | T1 | P0 | VERIFIED | Bootstrap from clean checkout; document exact working commands and versions — verified 2026-10-26 (host tests + emulator build) |
-| T2 | P0 | IN_PROGRESS | Build APK and launch on Android — emulator VERIFIED (Pixel_9a, API 37); physical device deferred until build ready |
-| T3 | P0 | IN_PROGRESS | Call a model through Symfony AI from Android embedded PHP — gateway + emulator call to local fake provider VERIFIED; real provider call pending secure key (T8) |
-| T4 | P0 | IN_PROGRESS | Capture photo and send to vision model with consent — camera capture VERIFIED on emulator; vision upload/consent pending |
+| T2 | P0 | VERIFIED | Build APK and launch on Android — emulator + physical ZTE 8050 (Android 13) verified 2026-10-27 |
+| T3 | P0 | IN_PROGRESS | Call a model through Symfony AI from Android embedded PHP — gateway + emulator fake-provider call VERIFIED; real DeepSeek call pending user-entered key |
+| T4 | P0 | IN_PROGRESS | Capture photo and send to vision model with consent — camera capture VERIFIED on emulator + physical ZTE; confirmation UX hint added; vision upload/consent pending |
 | T5 | P1 | PLANNED | SQLite repair sessions survive restart |
 | T6 | P1 | PLANNED | Multi-turn diagnostic questions use prior observations |
 | T7 | P1 | PLANNED | Deterministic safety filtering and escalation |

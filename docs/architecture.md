@@ -24,6 +24,6 @@ Support low-risk, non-invasive troubleshooting. No instructions for opening main
 
 ## Technical spikes
 - Embedded PHP extensions and Symfony AI HTTP compatibility — **verified on emulator with a fake provider** (2026-10-26)
-- Camera image handling — **verified on emulator**: system camera intent, app-private JPEG, path returned to PHP (2026-10-26)
+- Camera image handling — **verified on emulator and physical ZTE 8050**: system camera intent, app-private JPEG, path returned to PHP (2026-10-27)
 - Secure local provider key storage — **verified on emulator** (ADR 0003): encrypted at rest with the NativePHP Keystore-managed `APP_KEY`, entered in app Settings
 - Signed APK build in GitHub Actions — pending

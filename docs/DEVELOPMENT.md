@@ -129,7 +129,7 @@ Then on the device:
 
 1. Tap **Take a photo**.
 2. Grant the camera permission (Android shows `Allow FixIt to take pictures and record video?`).
-3. Capture a frame and confirm it in the system camera app.
+3. Take the photo, then tap the **✓ checkmark** on the system camera’s review screen. FixIt receives nothing until you confirm.
 4. The home screen renders the photo and logs `Photo captured: image/jpeg, <file>.jpg`.
 
 Verified 2026-10-26 on the `Pixel_9a` emulator (Android 17 / API 37) using the virtual-scene camera:
@@ -139,9 +139,16 @@ Verified 2026-10-26 on the `Pixel_9a` emulator (Android 17 / API 37) using the v
 - PHP received the path and the native UI rendered it as a preview.
 - Evidence: [evidence/2026-10-26-android-emulator-camera.png](evidence/2026-10-26-android-emulator-camera.png).
 
+Verified 2026-10-27 on a physical **ZTE 8050** (Android 13 / API 33, arm64):
+
+- APK installed and launched; camera permission + system camera capture worked.
+- Captured **3072×4032 JPEG (2.4 MB)**; preview rendered and PHP received the path.
+- The confirmation step was not obvious during the first physical test, so the camera card now includes “tap the ✓ checkmark to confirm” and a clearer cancel message. Cancel flow verified on the phone.
+- Evidence: [evidence/2026-10-27-zte-camera-confirmation-hint.png](evidence/2026-10-27-zte-camera-confirmation-hint.png), [evidence/2026-10-27-zte-camera-cancel-message.png](evidence/2026-10-27-zte-camera-cancel-message.png). The captured personal photo is not committed.
+
 Notes:
 
-- This is the **system camera intent**, not an in-app camera preview. That is sufficient for photo capture but means camera controls belong to the OS app.
+- This is the **system camera intent**, not an in-app camera preview. The confirmation UI belongs to the OS camera app; a custom in-app camera is deferred.
 - The plugin declares `CAMERA` (and video-related) permissions; Android prompts at runtime.
 - Photos are not uploaded anywhere yet. T4 must add explicit consent before any image leaves the device.
 - Emulator camera must be configured (`hw.camera.back=virtualscene` or a host webcam); a device with no camera reports capture failure.
