@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\RepairSession;
 use App\Services\AI\ModelGateway;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Native\Mobile\Testing\Native;
@@ -133,4 +134,36 @@ it('restores the latest repair session after a restart', function () {
         ->assertSee('Previous repair session loaded from local storage.')
         ->assertSee('The image shows a blue test object.')
         ->assertElement('image', fn (array $node): bool => ($node['ref'] ?? null) === 'captured-photo');
+});
+
+it('continues the diagnosis with a follow-up answer and restores it', function () {
+    app()->instance(ModelGateway::class, new ModelGateway(
+        new InMemoryApiKeyStore('test-key'),
+        MockPlatformFactory::createPlatform(static function ($model, $input, $options): string {
+            $payload = json_encode($input);
+
+            return str_contains((string) $payload, 'follow-up answer')
+                ? 'Follow-up result: the pump may be blocked.'
+                : 'Vision result: I see a test object.';
+        }),
+        'deepseek-flash',
+    ));
+
+    Native::visit('/')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->set('symptoms', 'no water flow')
+        ->tap('analyze-photo-button')
+        ->assertSee('Continue the diagnosis')
+        ->set('followUpAnswer', 'follow-up answer: the light is on')
+        ->tap('send-follow-up-button')
+        ->assertSee('Follow-up result: the pump may be blocked.');
+
+    Native::visit('/')
+        ->assertSee('Follow-up result: the pump may be blocked.')
+        ->assertSee('Resumed the previous follow-up answer.');
+
+    $session = RepairSession::query()->latest('updated_at')->firstOrFail();
+
+    expect($session->observations()->where('kind', 'follow_up_answer')->count())->toBe(1);
+    expect($session->observations()->where('kind', 'follow_up_result')->count())->toBe(1);
 });

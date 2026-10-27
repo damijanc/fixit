@@ -9,7 +9,7 @@ Use PLANNED, IN_PROGRESS, IMPLEMENTED, VERIFIED or BLOCKED. Only VERIFIED means 
 | T3 | P0 | VERIFIED | Call a model through Symfony AI from Android embedded PHP — real DeepSeek `deepseek-flash` call VERIFIED on physical ZTE 8050 (2026-10-27) |
 | T4 | P0 | VERIFIED | Capture photo and send to vision model with consent — camera + consent + real DeepSeek `deepseek-flash` image response VERIFIED on emulator and physical ZTE (2026-10-27) |
 | T5 | P1 | VERIFIED | SQLite repair sessions survive restart — session + observations persisted; force-stop/relaunch restore VERIFIED on emulator 2026-10-27 |
-| T6 | P1 | IN_PROGRESS | Multi-turn diagnostic questions use prior observations — symptoms field + persisted session ready; follow-up turn pending |
+| T6 | P1 | VERIFIED | Multi-turn diagnostic questions use prior observations — follow-up conversation + persistence/restore VERIFIED on emulator 2026-10-27 |
 | T7 | P1 | PLANNED | Deterministic safety filtering and escalation |
 | T8 | P1 | VERIFIED | Secure user API key settings; no embedded secrets — app Settings entry, encrypted storage, restart persistence and APK-absence VERIFIED on emulator (ADR 0003) |
 | T9 | P1 | PLANNED | Home, diagnosis, result and history screens — minimal FixIt home started |

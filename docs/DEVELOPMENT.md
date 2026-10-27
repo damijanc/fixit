@@ -189,6 +189,9 @@ The symptoms field is included in the prompt and stored on the session; multi-tu
 
 Verified 2026-10-27 on the `Pixel_9a` emulator: captured a photo, entered symptoms, ran a fake-provider vision request, force-stopped and relaunched the app; the session and result were restored. Evidence: [evidence/2026-10-27-emulator-session-restored.png](evidence/2026-10-27-emulator-session-restored.png).
 
+After the vision result, **Continue the diagnosis** sends the stored photo prompt, prior assistant result and new answer as a text conversation (the image is not re-uploaded). The answer and response are stored as observations and restored after relaunch. Evidence: [evidence/2026-10-27-emulator-followup-restored.png](evidence/2026-10-27-emulator-followup-restored.png).
+
+
 
 
 

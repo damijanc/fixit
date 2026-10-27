@@ -169,6 +169,51 @@
                         AI output can be wrong. Do not open mains-powered devices; escalate to a qualified professional when unsure.
                     </text>
                 </column>
+
+                <column
+                    ref="follow-up-card"
+                    class="mt-4 w-full rounded-xl border border-theme-outline p-4"
+                >
+                    <text ref="follow-up-title" class="text-sm font-bold text-theme-on-surface">
+                        Continue the diagnosis
+                    </text>
+                    <text ref="follow-up-description" class="mt-1 text-xs text-theme-on-surface-variant">
+                        Answer the question from the analysis, or add what you observed.
+                    </text>
+
+                    <native:outlined-text-input
+                        ref="follow-up-input"
+                        class="mt-3 w-full"
+                        label="Your answer"
+                        placeholder="e.g. the light turns on but there is no water"
+                        multiline
+                        native:model="followUpAnswer"
+                        a11y-label="Follow-up answer"
+                    />
+
+                    <native:button
+                        ref="send-follow-up-button"
+                        variant="primary"
+                        class="mt-3 w-full"
+                        a11y-label="Send follow-up answer"
+                        a11y-hint="Continues the diagnosis using earlier observations"
+                        @tap="sendFollowUp"
+                    >
+                        {{ $followUpBusy ? 'Thinking…' : 'Send answer' }}
+                    </native:button>
+
+                    @if ($followUpStatus !== '')
+                        <text ref="follow-up-status" class="mt-3 text-xs text-theme-on-surface">
+                            {{ $followUpStatus }}
+                        </text>
+                    @endif
+
+                    @if ($followUpResult !== '')
+                        <text ref="follow-up-result" class="mt-3 text-sm text-theme-on-surface">
+                            {{ $followUpResult }}
+                        </text>
+                    @endif
+                </column>
             @endif
         </column>
 

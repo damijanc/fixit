@@ -6,24 +6,24 @@ Updated: 2026-10-27
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `task/t5-sessions` (SQLite repair sessions).
+- Active branch: `task/t6-multiturn` (follow-up diagnosis using prior observations).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 36 tests, 211 assertions.
+- Host test suite: VERIFIED — 38 tests, 236 assertions.
 - Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37) and on a physical **ZTE 8050** (Android 13 / API 33, arm64, serial `LZV50SDEDC3001352`), package `com.fixit.app`.
 - Symfony AI in embedded Android PHP: **VERIFIED with a real DeepSeek call** on the physical ZTE 8050 — `deepseek-flash` returned `FixIt AI connectivity OK`.
 - Camera capture: **VERIFIED** on emulator and physical ZTE 8050 — system camera, JPEG in app-private storage, path returned to PHP, preview rendered.
 - Vision upload + consent: **VERIFIED** — explicit send, no upload on capture/cancel, base64 image data URL through Symfony AI; real `deepseek-flash` image response on the ZTE.
-- SQLite repair sessions: **VERIFIED** on the emulator — photo, symptoms and vision result persisted; force-stop/relaunch restored the previous session and preview. Evidence: `docs/evidence/2026-10-27-emulator-session-restored.png`.
-- Symptoms field: IMPLEMENTED and included in the vision prompt; multi-turn follow-up still pending.
+- SQLite repair sessions: **VERIFIED** on the emulator — photo, symptoms, vision result and follow-up turns persisted; force-stop/relaunch restored them. Evidence: `docs/evidence/2026-10-27-emulator-session-restored.png`.
+- Multi-turn follow-up: **VERIFIED** on emulator — prior photo prompt + assistant result + user answer sent as a conversation; response persisted and restored after relaunch. Evidence: `docs/evidence/2026-10-27-emulator-followup-restored.png`.
 - Provider: **DeepSeek** (`https://api.deepseek.com`, `deepseek-flash`, vision-capable) is the configured default.
 - Secure provider key: **VERIFIED** — entered in Settings, encrypted at rest with the Keystore-managed `APP_KEY`, absent from `.env` and the APK; remove works. ADR 0003. Keys must include the `sk-` prefix.
 - FixIt home + provider settings screens: IMPLEMENTED and tested on emulator + physical ZTE.
-- Safety filtering, multi-turn diagnosis and result/history screens: PLANNED.
+- Deterministic safety filtering and result/history screens: PLANNED.
 - CI: PHP test workflow VERIFIED on GitHub Actions; Android CI build still pending (T10).
 
 ## Next step
-T6: ask one follow-up diagnostic question using the persisted session/observations; then T7 deterministic safety filtering.
+T7: deterministic safety filtering and escalation rules for model output. Then T9 screens, T10/T11 release.
 
 ## Known risks
 - Signed CI APK build unimplemented.
@@ -142,6 +142,17 @@ T6: ask one follow-up diagnostic question using the persisted session/observatio
 - Not verified: physical-device session persistence (emulator evidence only); multi-turn follow-up; safety filtering.
 - Blockers/decisions: NativePHP does not run migrations on device, so the app checks for `repair_sessions` on boot and runs `migrate --force` once. Console/test runs keep using explicit migrations.
 - Next executable action: T6 — load prior observations, send a follow-up question and persist the answer.
+
+### 2026-10-27 — T6 multi-turn follow-up
+- Branch/PR: `task/t6-multiturn` (PR #13).
+- Changed files: `ModelGateway::continueConversation(MessageBag)`; `RepairSessionService` follow-up persistence; Home follow-up input/send/restore; fake provider assistant-history detection; tests; docs/evidence.
+- Implemented: follow-up conversation built from the stored photo prompt, vision result and earlier answers; answer + response persisted as observations; follow-up result restored on relaunch.
+- Verified (command, environment/device, result):
+  - `php artisan test` — 38 passed, 236 assertions.
+  - Emulator `Pixel_9a`: resumed the T5 session, entered a follow-up answer, fake provider detected the assistant history and returned a follow-up response; force-stop/relaunch restored `Resumed the previous follow-up answer.` and the result. Evidence: `docs/evidence/2026-10-27-emulator-followup-restored.png`.
+- Not verified: physical-device follow-up; deterministic safety filtering (T7); signed release.
+- Blockers/decisions: follow-up sends text history only (not the image again) to keep token cost low; the photo prompt + prior result are included as context.
+- Next executable action: T7 — deterministic safety filtering/escalation.
 
 ## Handoff entry template
 ### YYYY-MM-DD — task
