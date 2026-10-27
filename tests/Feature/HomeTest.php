@@ -167,3 +167,45 @@ it('continues the diagnosis with a follow-up answer and restores it', function (
     expect($session->observations()->where('kind', 'follow_up_answer')->count())->toBe(1);
     expect($session->observations()->where('kind', 'follow_up_result')->count())->toBe(1);
 });
+
+it('blocks unsafe model guidance before it is displayed', function () {
+    app()->instance(ModelGateway::class, new ModelGateway(
+        new InMemoryApiKeyStore('test-key'),
+        MockPlatformFactory::createPlatform('Open the back panel and bypass the interlock.'),
+        'deepseek-flash',
+    ));
+
+    Native::visit('/')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->tap('analyze-photo-button')
+        ->assertSee('Safety filter blocked unsafe guidance')
+        ->assertSee("can't provide that instruction")
+        ->assertDontSee('bypass the interlock');
+
+    $session = RepairSession::query()->latest('updated_at')->firstOrFail();
+
+    expect($session->status)->toBe('escalated');
+    expect($session->summary)->not->toContain('bypass the interlock');
+});
+
+it('blocks unsafe follow-up guidance too', function () {
+    app()->instance(ModelGateway::class, new ModelGateway(
+        new InMemoryApiKeyStore('test-key'),
+        MockPlatformFactory::createPlatform(static function ($model, $input, $options): string {
+            $payload = json_encode($input);
+
+            return str_contains((string) $payload, 'follow-up answer')
+                ? 'Open the case and touch the mains wiring.'
+                : 'Vision result: safe external check only.';
+        }),
+        'deepseek-flash',
+    ));
+
+    Native::visit('/')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->tap('analyze-photo-button')
+        ->set('followUpAnswer', 'follow-up answer: it still does not work')
+        ->tap('send-follow-up-button')
+        ->assertSee('Safety filter blocked unsafe guidance')
+        ->assertDontSee('touch the mains wiring');
+});

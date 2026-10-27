@@ -19,4 +19,5 @@ Follow AGENTS.md and update docs/STATUS.md and docs/TASKS.md with verified evide
 - The app creates the session schema on first device boot (`migrate --force`) because NativePHP does not run migrations automatically.
 - Symptoms are included in the vision prompt and stored on the session.
 - Multi-turn follow-up is implemented: the stored photo prompt, vision result and prior answers are sent as a conversation; the answer and response persist and restore after relaunch (verified on emulator, 2026-10-27).
-- Remaining: deterministic safety filtering/escalation (T7) and the full diagnosis/result/history screens (T9).
+- Deterministic safety filtering is implemented and unit/UI-tested: hazardous mains/gas/interlock instructions are blocked before display with a professional-referral message; mains/gas mentions escalate; blocked raw text is not stored.
+- Remaining: the full diagnosis/result/history screens (T9).

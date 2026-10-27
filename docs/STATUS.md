@@ -6,24 +6,25 @@ Updated: 2026-10-27
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `task/t6-multiturn` (follow-up diagnosis using prior observations).
+- Active branch: `task/t7-safety-filter` (deterministic safety filtering).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 38 tests, 236 assertions.
+- Host test suite: VERIFIED — 47 tests, 279 assertions.
 - Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37) and on a physical **ZTE 8050** (Android 13 / API 33, arm64, serial `LZV50SDEDC3001352`), package `com.fixit.app`.
 - Symfony AI in embedded Android PHP: **VERIFIED with a real DeepSeek call** on the physical ZTE 8050 — `deepseek-flash` returned `FixIt AI connectivity OK`.
 - Camera capture: **VERIFIED** on emulator and physical ZTE 8050 — system camera, JPEG in app-private storage, path returned to PHP, preview rendered.
 - Vision upload + consent: **VERIFIED** — explicit send, no upload on capture/cancel, base64 image data URL through Symfony AI; real `deepseek-flash` image response on the ZTE.
 - SQLite repair sessions: **VERIFIED** on the emulator — photo, symptoms, vision result and follow-up turns persisted; force-stop/relaunch restored them. Evidence: `docs/evidence/2026-10-27-emulator-session-restored.png`.
 - Multi-turn follow-up: **VERIFIED** on emulator — prior photo prompt + assistant result + user answer sent as a conversation; response persisted and restored after relaunch. Evidence: `docs/evidence/2026-10-27-emulator-followup-restored.png`.
+- Deterministic safety filtering: **VERIFIED** by unit + UI tests — hazardous instructions (mains work, gas, opening appliances, bypassing interlocks, live probing) are blocked before display; mains/gas mentions escalate with a professional warning. Blocked raw text is not stored.
 - Provider: **DeepSeek** (`https://api.deepseek.com`, `deepseek-flash`, vision-capable) is the configured default.
 - Secure provider key: **VERIFIED** — entered in Settings, encrypted at rest with the Keystore-managed `APP_KEY`, absent from `.env` and the APK; remove works. ADR 0003. Keys must include the `sk-` prefix.
 - FixIt home + provider settings screens: IMPLEMENTED and tested on emulator + physical ZTE.
-- Deterministic safety filtering and result/history screens: PLANNED.
+- Diagnosis/result/history screens and release work: PLANNED.
 - CI: PHP test workflow VERIFIED on GitHub Actions; Android CI build still pending (T10).
 
 ## Next step
-T7: deterministic safety filtering and escalation rules for model output. Then T9 screens, T10/T11 release.
+T9: expand the single screen into a usable diagnosis/result/history flow. Then T10/T11 release work.
 
 ## Known risks
 - Signed CI APK build unimplemented.
@@ -153,6 +154,18 @@ T7: deterministic safety filtering and escalation rules for model output. Then T
 - Not verified: physical-device follow-up; deterministic safety filtering (T7); signed release.
 - Blockers/decisions: follow-up sends text history only (not the image again) to keep token cost low; the photo prompt + prior result are included as context.
 - Next executable action: T7 — deterministic safety filtering/escalation.
+
+### 2026-10-27 — T7 deterministic safety filter
+- Branch/PR: `task/t7-safety-filter` (PR #14).
+- Changed files: `SafetyFilter` + `SafetyResult`; Home integration for vision and follow-up; session status escalation; tests; docs.
+- Implemented: sentence-level checks with negation handling; blocks mains work, gas work, opening appliances, bypassing interlocks, live probing and microwaves; escalates mains/gas mentions; replaces blocked text with a professional-referral message; persists only the safe text and sets session status `escalated`.
+- Verified (command, environment/device, result):
+  - `php artisan test` — 47 passed, 279 assertions.
+  - Unit cases cover safe external checks, dangerous instructions, gas, live probing, negated warnings, mains escalation and professional referral.
+  - UI tests verify blocked vision and follow-up output is not displayed raw and the session is marked escalated.
+- Not verified: adversarial prompt/model-output corpus beyond the covered cases; physical-device check of the safety banner; signed release.
+- Blockers/decisions: deterministic, conservative filter; negation is sentence-local, so unusual sentence structure may still cause false positives/negatives. No raw blocked text is stored.
+- Next executable action: T9 — diagnosis/result/history screens, then T10/T11 release work.
 
 ## Handoff entry template
 ### YYYY-MM-DD — task

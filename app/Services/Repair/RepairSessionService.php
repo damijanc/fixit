@@ -22,24 +22,24 @@ final class RepairSessionService
         ]);
     }
 
-    public function recordVisionResult(RepairSession $session, string $prompt, string $result): RepairSession
+    public function recordVisionResult(RepairSession $session, string $prompt, string $result, string $status = 'awaiting_follow_up'): RepairSession
     {
         $session->addObservation('user', $prompt, 'photo_prompt');
         $session->addObservation('assistant', $result, 'vision_result');
 
         $session->forceFill([
             'summary' => $result,
-            'status' => 'awaiting_follow_up',
+            'status' => $status,
         ])->save();
 
         return $session;
     }
 
-    public function recordFollowUp(RepairSession $session, string $answer, string $result): RepairSession
+    public function recordFollowUp(RepairSession $session, string $answer, string $result, string $status = 'awaiting_follow_up'): RepairSession
     {
         $session->addObservation('user', $answer, 'follow_up_answer');
         $session->addObservation('assistant', $result, 'follow_up_result');
-        $session->forceFill(['status' => 'awaiting_follow_up'])->save();
+        $session->forceFill(['status' => $status])->save();
 
         return $session;
     }
