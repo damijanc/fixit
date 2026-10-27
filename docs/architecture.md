@@ -31,5 +31,6 @@ A deterministic `SafetyFilter` scans model output before display, blocks hazardo
 - SQLite repair sessions — **verified on emulator**: session/observations persist and restore after force-stop/relaunch (2026-10-27)
 - Multi-turn follow-up — **verified on emulator**: stored photo prompt + prior result + answer sent as a conversation and restored after relaunch (2026-10-27)
 - Deterministic safety filter — **verified by tests**: hazardous mains/gas/interlock instructions blocked before display; mains/gas mentions escalated (2026-10-27)
+- Home/Diagnosis/Result/History screens — **verified on emulator**: navigation, latest-session resume and saved result/history work (2026-10-27)
 - Secure local provider key storage — **verified on emulator** (ADR 0003): encrypted at rest with the NativePHP Keystore-managed `APP_KEY`, entered in app Settings
 - Signed APK build in GitHub Actions — pending

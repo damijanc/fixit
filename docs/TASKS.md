@@ -12,7 +12,7 @@ Use PLANNED, IN_PROGRESS, IMPLEMENTED, VERIFIED or BLOCKED. Only VERIFIED means 
 | T6 | P1 | VERIFIED | Multi-turn diagnostic questions use prior observations — follow-up conversation + persistence/restore VERIFIED on emulator 2026-10-27 |
 | T7 | P1 | VERIFIED | Deterministic safety filtering and escalation — hazardous mains/gas/interlock instructions blocked before display; tests cover dangerous outputs (2026-10-27) |
 | T8 | P1 | VERIFIED | Secure user API key settings; no embedded secrets — app Settings entry, encrypted storage, restart persistence and APK-absence VERIFIED on emulator (ADR 0003) |
-| T9 | P1 | IN_PROGRESS | Home, diagnosis, result and history screens — Home + Settings exist; diagnosis/result/history flow still to build |
+| T9 | P1 | VERIFIED | Home, diagnosis, result and history screens — four screens + navigation VERIFIED on emulator 2026-10-27 |
 | T10 | P1 | IN_PROGRESS | Automated tests and CI Android build — host PHP test workflow added; Android CI build pending |
 | T11 | P1 | PLANNED | Signed release APK, judge setup guide, demo video |
 | T12 | P2 | PLANNED | Before/after photo comparison |

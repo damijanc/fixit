@@ -6,25 +6,25 @@ Updated: 2026-10-27
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `task/t7-safety-filter` (deterministic safety filtering).
+- Active branch: `task/t9-screens` (Home, Diagnosis, Result, History).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 47 tests, 279 assertions.
+- Host test suite: VERIFIED — 53 tests, 347 assertions.
 - Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37) and on a physical **ZTE 8050** (Android 13 / API 33, arm64, serial `LZV50SDEDC3001352`), package `com.fixit.app`.
 - Symfony AI in embedded Android PHP: **VERIFIED with a real DeepSeek call** on the physical ZTE 8050 — `deepseek-flash` returned `FixIt AI connectivity OK`.
 - Camera capture: **VERIFIED** on emulator and physical ZTE 8050 — system camera, JPEG in app-private storage, path returned to PHP, preview rendered.
 - Vision upload + consent: **VERIFIED** — explicit send, no upload on capture/cancel, base64 image data URL through Symfony AI; real `deepseek-flash` image response on the ZTE.
 - SQLite repair sessions: **VERIFIED** on the emulator — photo, symptoms, vision result and follow-up turns persisted; force-stop/relaunch restored them. Evidence: `docs/evidence/2026-10-27-emulator-session-restored.png`.
 - Multi-turn follow-up: **VERIFIED** on emulator — prior photo prompt + assistant result + user answer sent as a conversation; response persisted and restored after relaunch. Evidence: `docs/evidence/2026-10-27-emulator-followup-restored.png`.
-- Deterministic safety filtering: **VERIFIED** by unit + UI tests — hazardous instructions (mains work, gas, opening appliances, bypassing interlocks, live probing) are blocked before display; mains/gas mentions escalate with a professional warning. Blocked raw text is not stored.
+- Deterministic safety filtering: **VERIFIED** by unit + UI tests — hazardous instructions are blocked before display; mains/gas mentions escalate; blocked raw text is not stored.
+- Screens: **VERIFIED on emulator** — Home landing, Diagnosis, Result and History with navigation and saved-session lists. Evidence: `docs/evidence/2026-10-27-emulator-home-screens.png`, `...-history.png`, `...-result-screen.png`.
 - Provider: **DeepSeek** (`https://api.deepseek.com`, `deepseek-flash`, vision-capable) is the configured default.
 - Secure provider key: **VERIFIED** — entered in Settings, encrypted at rest with the Keystore-managed `APP_KEY`, absent from `.env` and the APK; remove works. ADR 0003. Keys must include the `sk-` prefix.
-- FixIt home + provider settings screens: IMPLEMENTED and tested on emulator + physical ZTE.
-- Diagnosis/result/history screens and release work: PLANNED.
+- Release work (signed APK, Android CI, demo) is the main remaining scope.
 - CI: PHP test workflow VERIFIED on GitHub Actions; Android CI build still pending (T10).
 
 ## Next step
-T9: expand the single screen into a usable diagnosis/result/history flow. Then T10/T11 release work.
+T10/T11: Android CI build, signed release APK, judge setup guide and demo. Physical-device pass of the new screens is still desirable.
 
 ## Known risks
 - Signed CI APK build unimplemented.
@@ -166,6 +166,17 @@ T9: expand the single screen into a usable diagnosis/result/history flow. Then T
 - Not verified: adversarial prompt/model-output corpus beyond the covered cases; physical-device check of the safety banner; signed release.
 - Blockers/decisions: deterministic, conservative filter; negation is sentence-local, so unusual sentence structure may still cause false positives/negatives. No raw blocked text is stored.
 - Next executable action: T9 — diagnosis/result/history screens, then T10/T11 release work.
+
+### 2026-10-27 — T9 Home / Diagnosis / Result / History screens
+- Branch/PR: `task/t9-screens` (PR #15).
+- Changed files: new `Home`, `Diagnosis`, `Result`, `History` NativeComponents + views; routes; split tests (`HomeTest`, `DiagnosisTest`, `HistoryTest`, `ResultTest`); docs/evidence.
+- Implemented: landing screen with new/continue/history/settings; diagnosis flow moved intact to `/diagnosis`; fresh `/diagnosis` vs resumed `/diagnosis/{session}`; result screen with photo/symptoms/summary/follow-up/safety; history list of saved sessions.
+- Verified (command, environment/device, result):
+  - `php artisan test` — 53 passed, 347 assertions.
+  - Emulator `Pixel_9a`: Home → History → Result navigation, latest-session resume, safety notice and follow-up display worked. Evidence: `docs/evidence/2026-10-27-emulator-home-screens.png`, `...-history.png`, `...-result-screen.png`.
+- Not verified: physical-device pass of the new screens; release build.
+- Blockers/decisions: Home shows the latest session; `/diagnosis` is a fresh session, `/diagnosis/{id}` resumes a saved one. History is capped at 30 sessions.
+- Next executable action: T10/T11 — Android CI build, signed release APK, judge guide and demo.
 
 ## Handoff entry template
 ### YYYY-MM-DD — task
