@@ -53,7 +53,7 @@ class Home extends NativeComponent
 
     public function takePhoto(): void
     {
-        $this->cameraStatus = 'Opening the camera…';
+        $this->cameraStatus = 'Opening the camera… After the shutter, tap ✓ to confirm the photo.';
 
         $started = Camera::getPhoto()
             ->id('fixit-camera-check')
@@ -74,7 +74,7 @@ class Home extends NativeComponent
     #[On(PhotoCancelled::class)]
     public function handlePhotoCancelled(): void
     {
-        $this->cameraStatus = 'Photo capture cancelled.';
+        $this->cameraStatus = 'No photo received. Take the photo, then tap the ✓ checkmark on the camera review screen.';
     }
 
     #[On(PermissionDenied::class)]

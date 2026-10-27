@@ -13,6 +13,7 @@ it('renders the FixIt home screen', function () {
         ->assertSee('AI connectivity')
         ->assertSee('Test AI connection')
         ->assertSee('Provider settings')
+        ->assertSee('tap the ✓ checkmark to confirm')
         ->assertSee('Android-only · Local sessions · No account required');
 });
 
@@ -55,4 +56,11 @@ it('explains when camera permission is denied', function () {
     Native::visit('/')
         ->call('handleCameraPermissionDenied', 'photo')
         ->assertSee('Camera permission denied for photo');
+});
+
+it('explains the confirmation step when no photo is returned', function () {
+    Native::visit('/')
+        ->call('handlePhotoCancelled')
+        ->assertSee('No photo received')
+        ->assertSee('tap the ✓ checkmark on the camera review screen');
 });

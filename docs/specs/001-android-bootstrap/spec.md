@@ -1,9 +1,9 @@
 # Android bootstrap
 
 - Spec ID: 001-android-bootstrap
-- Status: IN_PROGRESS
+- Status: VERIFIED
 - Tasks: T1, T2
-- Last reviewed: 2026-10-26
+- Last reviewed: 2026-10-27
 
 ## Goal
 Android bootstrap for the Android-only FixIt hackathon MVP.
@@ -35,4 +35,9 @@ T1 implemented and verified on 2026-10-26:
 - Host tests pass (8 tests, 81 assertions).
 - `php artisan native:run android` built a 101 MB debug APK and launched `com.fixit.app` on a `Pixel_9a` emulator (Android 17 / API 37). Screenshot in `docs/evidence/2026-10-26-android-emulator-home.png`.
 
-Remaining for this spec: T2 on a **physical** device is deferred by decision on 2026-10-26 until the build is ready to try; emulator verification is complete. `php artisan native:build` is iOS-only; use `php artisan native:run android` for Android debug builds.
+T2 physical-device verification, 2026-10-27:
+
+- `php artisan native:run android LZV50SDEDC3001352 --no-tty --no-vite` installed and launched the debug APK on a physical **ZTE 8050** (Android 13 / API 33, arm64).
+- Camera permission, system camera capture and preview worked on the device.
+- Command/tool versions and workarounds are recorded in `docs/DEVELOPMENT.md` and the STATUS handoff log.
+- `php artisan native:build` is iOS-only; Android uses `php artisan native:run android` or `native:package`.
