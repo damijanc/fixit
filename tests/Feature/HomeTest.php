@@ -3,9 +3,12 @@
 declare(strict_types=1);
 
 use App\Services\AI\ModelGateway;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Native\Mobile\Testing\Native;
 use Symfony\AI\Platform\Test\MockPlatformFactory;
 use Tests\Support\InMemoryApiKeyStore;
+
+uses(RefreshDatabase::class);
 
 it('renders the FixIt home screen', function () {
     Native::visit('/')
@@ -74,7 +77,7 @@ it('requires an explicit action before uploading the photo', function () {
 
     Native::visit('/')
         ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
-        ->assertSee('Sending uploads this photo to DeepSeek')
+        ->assertSee('Sending uploads this photo and symptoms to DeepSeek')
         ->assertSee('Send photo to DeepSeek')
         ->tap('analyze-photo-button')
         ->assertSee('DeepSeek response received')
@@ -111,4 +114,23 @@ it('discards the photo from the device', function () {
         ->assertMissingElement('image', fn (array $node): bool => ($node['ref'] ?? null) === 'captured-photo');
 
     expect(is_file($temporaryPhoto))->toBeFalse();
+});
+
+it('restores the latest repair session after a restart', function () {
+    app()->instance(ModelGateway::class, new ModelGateway(
+        new InMemoryApiKeyStore('test-key'),
+        MockPlatformFactory::createPlatform('The image shows a blue test object.'),
+        'deepseek-flash',
+    ));
+
+    Native::visit('/')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->set('symptoms', 'no water flow')
+        ->tap('analyze-photo-button')
+        ->assertSee('The image shows a blue test object.');
+
+    Native::visit('/')
+        ->assertSee('Previous repair session loaded from local storage.')
+        ->assertSee('The image shows a blue test object.')
+        ->assertElement('image', fn (array $node): bool => ($node['ref'] ?? null) === 'captured-photo');
 });

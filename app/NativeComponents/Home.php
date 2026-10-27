@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\NativeComponents;
 
+use App\Models\RepairSession;
 use App\Services\AI\AiException;
 use App\Services\AI\ModelGateway;
+use App\Services\Repair\RepairSessionService;
 use Illuminate\View\View;
 use Native\Mobile\Attributes\On;
 use Native\Mobile\Edge\NativeComponent;
@@ -29,6 +31,35 @@ class Home extends NativeComponent
     public string $visionResult = '';
 
     public bool $visionBusy = false;
+
+    public string $symptoms = '';
+
+    public string $sessionId = '';
+
+    public string $sessionNotice = '';
+
+    public function mount(): void
+    {
+        $session = app(RepairSessionService::class)->latest();
+
+        if (! $session instanceof RepairSession) {
+            return;
+        }
+
+        $this->sessionId = $session->id;
+        $this->symptoms = (string) ($session->symptoms ?? '');
+        $this->visionResult = (string) ($session->summary ?? '');
+
+        if (is_string($session->photo_path) && is_file($session->photo_path)) {
+            $this->photoPath = $session->photo_path;
+        }
+
+        if ($this->visionResult !== '') {
+            $this->visionStatus = 'Resumed the previous repair session.';
+        }
+
+        $this->sessionNotice = 'Previous repair session loaded from local storage.';
+    }
 
     public function testAiConnection(): void
     {
@@ -77,6 +108,10 @@ class Home extends NativeComponent
         $this->cameraStatus = "Photo captured: {$mimeType}, ".basename($path);
         $this->visionStatus = '';
         $this->visionResult = '';
+
+        $session = app(RepairSessionService::class)->startWithPhoto($path, trim($this->symptoms));
+        $this->sessionId = $session->id;
+        $this->sessionNotice = 'Repair session saved locally.';
     }
 
     #[On(PhotoCancelled::class)]
@@ -93,6 +128,13 @@ class Home extends NativeComponent
 
     public function discardPhoto(): void
     {
+        if ($this->sessionId !== '') {
+            $session = RepairSession::query()->find($this->sessionId);
+            if ($session instanceof RepairSession) {
+                app(RepairSessionService::class)->discard($session);
+            }
+        }
+
         if ($this->photoPath !== '' && is_file($this->photoPath)) {
             @unlink($this->photoPath);
         }
@@ -100,6 +142,9 @@ class Home extends NativeComponent
         $this->photoPath = '';
         $this->visionStatus = '';
         $this->visionResult = '';
+        $this->symptoms = '';
+        $this->sessionId = '';
+        $this->sessionNotice = '';
         $this->cameraStatus = 'Photo discarded.';
     }
 
@@ -120,11 +165,27 @@ class Home extends NativeComponent
         $this->visionResult = '';
 
         try {
-            $this->visionResult = app(ModelGateway::class)->askWithImage(
-                $this->visionPrompt(),
-                $this->photoPath,
-            );
+            $prompt = $this->visionPrompt();
+            $result = app(ModelGateway::class)->askWithImage($prompt, $this->photoPath);
+
+            $session = $this->sessionId !== ''
+                ? RepairSession::query()->find($this->sessionId)
+                : null;
+
+            if (! $session instanceof RepairSession) {
+                $session = app(RepairSessionService::class)->startWithPhoto($this->photoPath, trim($this->symptoms));
+                $this->sessionId = $session->id;
+            }
+
+            if (trim($this->symptoms) !== '' && $session->symptoms !== trim($this->symptoms)) {
+                $session->forceFill(['symptoms' => trim($this->symptoms)])->save();
+            }
+
+            app(RepairSessionService::class)->recordVisionResult($session, $prompt, $result);
+
+            $this->visionResult = $result;
             $this->visionStatus = 'DeepSeek response received. Check every suggestion before acting on it.';
+            $this->sessionNotice = 'Repair session saved locally.';
         } catch (AiException $exception) {
             $this->visionStatus = $exception->getMessage();
         } catch (\Throwable $exception) {
@@ -137,8 +198,13 @@ class Home extends NativeComponent
 
     private function visionPrompt(): string
     {
-        return <<<'PROMPT'
-You are FixIt, a cautious repair assistant. Look at the photo and identify the object and the most likely fault. Ask at most one diagnostic question. Suggest only low-risk, non-invasive checks. Never tell the user to open mains-powered devices, service gas equipment, bypass interlocks, or perform hazardous tests. Escalate to a qualified professional when appropriate. Keep the response under 120 words and state uncertainty.
+        $symptoms = trim($this->symptoms);
+        $symptomContext = $symptoms === ''
+            ? 'The user has not described symptoms yet.'
+            : "The user describes these symptoms: {$symptoms}";
+
+        return <<<PROMPT
+You are FixIt, a cautious repair assistant. Look at the photo and identify the object and the most likely fault. Ask at most one diagnostic question. Suggest only low-risk, non-invasive checks. Never tell the user to open mains-powered devices, service gas equipment, bypass interlocks, or perform hazardous tests. Escalate to a qualified professional when appropriate. Keep the response under 120 words and state uncertainty. {$symptomContext}
 PROMPT;
     }
 

@@ -6,23 +6,24 @@ Updated: 2026-10-27
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `task/t4-vision-consent` (vision consent + real image request).
+- Active branch: `task/t5-sessions` (SQLite repair sessions).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 33 tests, 186 assertions.
+- Host test suite: VERIFIED — 36 tests, 211 assertions.
 - Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37) and on a physical **ZTE 8050** (Android 13 / API 33, arm64, serial `LZV50SDEDC3001352`), package `com.fixit.app`.
 - Symfony AI in embedded Android PHP: **VERIFIED with a real DeepSeek call** on the physical ZTE 8050 — `deepseek-flash` returned `FixIt AI connectivity OK`.
-- Camera capture in embedded Android PHP: **VERIFIED on emulator and physical ZTE 8050** — permission prompt, system camera, JPEG written to app-private storage, path returned to PHP and preview rendered. Physical capture: **3072×4032 JPEG, 2.4 MB**. Physical-device photo intentionally not committed.
-- Camera confirmation UX: explicit “tap ✓ to confirm” hint and clearer cancel message after physical-test feedback (PR #9). Evidence: `docs/evidence/2026-10-27-zte-camera-confirmation-hint.png`, `docs/evidence/2026-10-27-zte-camera-cancel-message.png`.
-- Vision upload + consent: **VERIFIED** — explicit “Send photo to DeepSeek” action, no upload on capture/cancel, base64 image data URL sent through Symfony AI. Emulator fake-provider result: `docs/evidence/2026-10-27-emulator-vision-fake.png`; physical ZTE real `deepseek-flash` image response received and rendered. Physical screenshot withheld because it showed personal content.
+- Camera capture: **VERIFIED** on emulator and physical ZTE 8050 — system camera, JPEG in app-private storage, path returned to PHP, preview rendered.
+- Vision upload + consent: **VERIFIED** — explicit send, no upload on capture/cancel, base64 image data URL through Symfony AI; real `deepseek-flash` image response on the ZTE.
+- SQLite repair sessions: **VERIFIED** on the emulator — photo, symptoms and vision result persisted; force-stop/relaunch restored the previous session and preview. Evidence: `docs/evidence/2026-10-27-emulator-session-restored.png`.
+- Symptoms field: IMPLEMENTED and included in the vision prompt; multi-turn follow-up still pending.
 - Provider: **DeepSeek** (`https://api.deepseek.com`, `deepseek-flash`, vision-capable) is the configured default.
-- Secure provider key: **VERIFIED** — entered in Settings on emulator and physical ZTE, encrypted at rest with the Keystore-managed `APP_KEY`, absent from `.env` and the APK; remove works. ADR 0003. Keys must include the `sk-` prefix; the app now rejects keys without it.
+- Secure provider key: **VERIFIED** — entered in Settings, encrypted at rest with the Keystore-managed `APP_KEY`, absent from `.env` and the APK; remove works. ADR 0003. Keys must include the `sk-` prefix.
 - FixIt home + provider settings screens: IMPLEMENTED and tested on emulator + physical ZTE.
-- Sessions, safety checks, symptoms/multi-turn diagnosis and result/history screens: PLANNED.
+- Safety filtering, multi-turn diagnosis and result/history screens: PLANNED.
 - CI: PHP test workflow VERIFIED on GitHub Actions; Android CI build still pending (T10).
 
 ## Next step
-T5/T6: persist repair sessions and add the symptoms + follow-up question flow; then deterministic safety filtering (T7).
+T6: ask one follow-up diagnostic question using the persisted session/observations; then T7 deterministic safety filtering.
 
 ## Known risks
 - Signed CI APK build unimplemented.
@@ -129,6 +130,18 @@ T5/T6: persist repair sessions and add the symptoms + follow-up question flow; t
 - Not verified: symptoms input and multi-turn follow-up (T5/T6); deterministic safety filtering (T7); signed release.
 - Blockers/decisions: the vision request is opt-in per photo; the photo stays in app-private storage until sent. Image size/type validated before send (JPEG/PNG/GIF/WebP, ≤32 MB).
 - Next executable action: T5/T6 — persist sessions and add symptoms + one follow-up question using prior observations.
+
+### 2026-10-27 — T5 SQLite repair sessions
+- Branch/PR: `task/t5-sessions` (PR #12).
+- Changed files: `repair_sessions`/`repair_observations` migration; `RepairSession`/`RepairObservation` models; `RepairSessionService`; first-boot migration check in `AppServiceProvider`; Home session persistence/resume + symptoms field; tests.
+- Implemented: each captured photo starts a local session; symptoms, prompt and vision result are stored; Home resumes the latest session on mount; discard deletes the session; the app creates the schema on first device boot.
+- Verified (command, environment/device, result):
+  - `php artisan test` — 36 passed, 211 assertions.
+  - Emulator `Pixel_9a`: captured photo, entered symptoms, sent to fake provider, force-stopped and relaunched the app — Home restored the previous session with `Previous repair session loaded from local storage.`, the photo preview and the vision result. Evidence: `docs/evidence/2026-10-27-emulator-session-restored.png`.
+  - Device DB path: `app_storage/persisted_data/database/database.sqlite`.
+- Not verified: physical-device session persistence (emulator evidence only); multi-turn follow-up; safety filtering.
+- Blockers/decisions: NativePHP does not run migrations on device, so the app checks for `repair_sessions` on boot and runs `migrate --force` once. Console/test runs keep using explicit migrations.
+- Next executable action: T6 — load prior observations, send a follow-up question and persist the answer.
 
 ## Handoff entry template
 ### YYYY-MM-DD — task
