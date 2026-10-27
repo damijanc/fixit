@@ -8,6 +8,7 @@ use Symfony\AI\Agent\Agent;
 use Symfony\AI\Platform\Bridge\Generic\Factory;
 use Symfony\AI\Platform\Message\Content\Image;
 use Symfony\AI\Platform\Message\Content\Text;
+use Symfony\AI\Platform\Message\MessageBag;
 use Symfony\AI\Platform\Message\UserMessage;
 use Symfony\AI\Platform\PlatformInterface;
 use Symfony\Component\HttpClient\HttpClient;
@@ -57,7 +58,17 @@ final class ModelGateway
         ));
     }
 
-    private function run(string|UserMessage $input): string
+    /**
+     * Continue a text conversation with prior user/assistant turns.
+     *
+     * @throws AiException
+     */
+    public function continueConversation(MessageBag $messages): string
+    {
+        return $this->run($messages);
+    }
+
+    private function run(string|UserMessage|MessageBag $input): string
     {
         $model = $this->model ?? (string) config('ai.model');
         if (trim($model) === '') {

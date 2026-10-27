@@ -15,6 +15,11 @@ use Native\Mobile\Events\Camera\PermissionDenied;
 use Native\Mobile\Events\Camera\PhotoCancelled;
 use Native\Mobile\Events\Camera\PhotoTaken;
 use Native\Mobile\Facades\Camera;
+use Symfony\AI\Platform\Message\AssistantMessage;
+use Symfony\AI\Platform\Message\Content\Text;
+use Symfony\AI\Platform\Message\MessageBag;
+use Symfony\AI\Platform\Message\SystemMessage;
+use Symfony\AI\Platform\Message\UserMessage;
 
 class Home extends NativeComponent
 {
@@ -38,6 +43,14 @@ class Home extends NativeComponent
 
     public string $sessionNotice = '';
 
+    public string $followUpAnswer = '';
+
+    public string $followUpStatus = '';
+
+    public string $followUpResult = '';
+
+    public bool $followUpBusy = false;
+
     public function mount(): void
     {
         $session = app(RepairSessionService::class)->latest();
@@ -56,6 +69,12 @@ class Home extends NativeComponent
 
         if ($this->visionResult !== '') {
             $this->visionStatus = 'Resumed the previous repair session.';
+        }
+
+        $followUp = app(RepairSessionService::class)->latestFollowUp($session);
+        if ($followUp !== null) {
+            $this->followUpResult = $followUp;
+            $this->followUpStatus = 'Resumed the previous follow-up answer.';
         }
 
         $this->sessionNotice = 'Previous repair session loaded from local storage.';
@@ -108,6 +127,9 @@ class Home extends NativeComponent
         $this->cameraStatus = "Photo captured: {$mimeType}, ".basename($path);
         $this->visionStatus = '';
         $this->visionResult = '';
+        $this->followUpAnswer = '';
+        $this->followUpStatus = '';
+        $this->followUpResult = '';
 
         $session = app(RepairSessionService::class)->startWithPhoto($path, trim($this->symptoms));
         $this->sessionId = $session->id;
@@ -145,6 +167,9 @@ class Home extends NativeComponent
         $this->symptoms = '';
         $this->sessionId = '';
         $this->sessionNotice = '';
+        $this->followUpAnswer = '';
+        $this->followUpStatus = '';
+        $this->followUpResult = '';
         $this->cameraStatus = 'Photo discarded.';
     }
 
@@ -185,6 +210,9 @@ class Home extends NativeComponent
 
             $this->visionResult = $result;
             $this->visionStatus = 'DeepSeek response received. Check every suggestion before acting on it.';
+            $this->followUpAnswer = '';
+            $this->followUpStatus = '';
+            $this->followUpResult = '';
             $this->sessionNotice = 'Repair session saved locally.';
         } catch (AiException $exception) {
             $this->visionStatus = $exception->getMessage();
@@ -206,6 +234,95 @@ class Home extends NativeComponent
         return <<<PROMPT
 You are FixIt, a cautious repair assistant. Look at the photo and identify the object and the most likely fault. Ask at most one diagnostic question. Suggest only low-risk, non-invasive checks. Never tell the user to open mains-powered devices, service gas equipment, bypass interlocks, or perform hazardous tests. Escalate to a qualified professional when appropriate. Keep the response under 120 words and state uncertainty. {$symptomContext}
 PROMPT;
+    }
+
+    public function sendFollowUp(): void
+    {
+        if ($this->followUpBusy) {
+            return;
+        }
+
+        $answer = trim($this->followUpAnswer);
+
+        if ($answer === '') {
+            $this->followUpStatus = 'Type an answer or observation first.';
+
+            return;
+        }
+
+        $session = $this->sessionId !== ''
+            ? RepairSession::query()->find($this->sessionId)
+            : null;
+
+        if (! $session instanceof RepairSession) {
+            $this->followUpStatus = 'Start a photo session before answering a follow-up.';
+
+            return;
+        }
+
+        $this->followUpBusy = true;
+        $this->followUpStatus = 'Thinking about your answer…';
+
+        try {
+            $result = app(ModelGateway::class)->continueConversation(
+                $this->followUpConversation($session, $answer),
+            );
+
+            app(RepairSessionService::class)->recordFollowUp($session, $answer, $result);
+
+            $this->followUpAnswer = '';
+            $this->followUpResult = $result;
+            $this->followUpStatus = 'Follow-up saved locally.';
+        } catch (AiException $exception) {
+            $this->followUpStatus = $exception->getMessage();
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->followUpStatus = 'Unexpected error while continuing the diagnosis.';
+        } finally {
+            $this->followUpBusy = false;
+        }
+    }
+
+    private function followUpConversation(RepairSession $session, string $answer): MessageBag
+    {
+        $messages = new MessageBag(new SystemMessage($this->followUpPrompt()));
+
+        $prompt = $session->observations()
+            ->where('kind', 'photo_prompt')
+            ->latest('id')
+            ->value('content');
+
+        if (is_string($prompt) && $prompt !== '') {
+            $messages->add(new UserMessage(new Text($prompt)));
+        }
+
+        if (is_string($session->summary) && $session->summary !== '') {
+            $messages->add(new AssistantMessage(new Text($session->summary)));
+        }
+
+        $history = $session->observations()
+            ->whereIn('kind', ['follow_up_answer', 'follow_up_result'])
+            ->orderBy('id')
+            ->get();
+
+        foreach ($history as $observation) {
+            $content = new Text((string) $observation->content);
+
+            $messages->add(
+                $observation->role === 'assistant'
+                    ? new AssistantMessage($content)
+                    : new UserMessage($content),
+            );
+        }
+
+        $messages->add(new UserMessage(new Text($answer)));
+
+        return $messages;
+    }
+
+    private function followUpPrompt(): string
+    {
+        return 'You are FixIt, a cautious repair assistant. Use the earlier photo analysis, symptoms and answers. Respond with a short cautious assessment and at most one new diagnostic question. Suggest only low-risk, non-invasive checks. Never tell the user to open mains-powered devices, service gas equipment, bypass interlocks, or perform hazardous tests. Escalate to a qualified professional when appropriate. Keep the response under 100 words and state uncertainty.';
     }
 
     public function render(): View

@@ -5,6 +5,11 @@ declare(strict_types=1);
 use App\Services\AI\AiRequestFailedException;
 use App\Services\AI\MissingApiKeyException;
 use App\Services\AI\ModelGateway;
+use Symfony\AI\Platform\Message\AssistantMessage;
+use Symfony\AI\Platform\Message\Content\Text;
+use Symfony\AI\Platform\Message\MessageBag;
+use Symfony\AI\Platform\Message\SystemMessage;
+use Symfony\AI\Platform\Message\UserMessage;
 use Symfony\AI\Platform\ModelCatalog\FallbackModelCatalog;
 use Symfony\AI\Platform\Platform;
 use Symfony\AI\Platform\Provider;
@@ -122,4 +127,28 @@ it('rejects an unreadable image before sending it', function () {
 
     expect(fn () => $gateway->askWithImage('What is this?', '/does/not/exist.jpg'))
         ->toThrow(AiRequestFailedException::class, 'could not be read');
+});
+
+it('sends prior turns when continuing a conversation', function () {
+    $client = new MockModelClient('Next step: check the filter.');
+    $platform = new Platform([
+        new Provider('mock', [$client], [new MockResultConverter], new FallbackModelCatalog),
+    ]);
+
+    $gateway = new ModelGateway(new InMemoryApiKeyStore('test-key'), $platform, 'deepseek-flash');
+
+    $reply = $gateway->continueConversation(new MessageBag(
+        new SystemMessage('safety rules'),
+        new UserMessage(new Text('earlier photo prompt')),
+        new AssistantMessage(new Text('earlier assistant result')),
+        new UserMessage(new Text('the light is on but there is no water')),
+    ));
+
+    expect($reply)->toBe('Next step: check the filter.');
+
+    $payload = json_encode($client->getCalls()[0]['payload']);
+
+    expect($payload)
+        ->toContain('earlier assistant result')
+        ->toContain('the light is on but there is no water');
 });

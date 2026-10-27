@@ -18,4 +18,5 @@ Follow AGENTS.md and update docs/STATUS.md and docs/TASKS.md with verified evide
 - Repair sessions and observations persist in SQLite. On the emulator, force-stopping and relaunching the app restored the photo, symptoms and vision result.
 - The app creates the session schema on first device boot (`migrate --force`) because NativePHP does not run migrations automatically.
 - Symptoms are included in the vision prompt and stored on the session.
-- Remaining: one follow-up question per turn using prior observations (T6), deterministic safety filtering/escalation (T7), and the full diagnosis/result/history screens (T9).
+- Multi-turn follow-up is implemented: the stored photo prompt, vision result and prior answers are sent as a conversation; the answer and response persist and restore after relaunch (verified on emulator, 2026-10-27).
+- Remaining: deterministic safety filtering/escalation (T7) and the full diagnosis/result/history screens (T9).

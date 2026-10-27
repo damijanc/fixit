@@ -28,7 +28,12 @@ $body = json_decode((string) file_get_contents('php://input'), true);
 $model = is_array($body) && is_string($body['model'] ?? null) ? $body['model'] : 'fixit-fake';
 
 $hasImage = false;
+$hasAssistant = false;
 foreach ((array) ($body['messages'] ?? []) as $message) {
+    if (($message['role'] ?? null) === 'assistant') {
+        $hasAssistant = true;
+    }
+
     $content = $message['content'] ?? null;
     if (! is_array($content)) {
         continue;
@@ -55,7 +60,9 @@ echo json_encode([
             'role' => 'assistant',
             'content' => $hasImage
                 ? 'Vision check OK: I received the image. This is a synthetic test response, not a diagnosis.'
-                : 'FixIt AI connectivity OK',
+                : ($hasAssistant
+                    ? 'Follow-up check OK: I used the earlier result and your answer. This is a synthetic test response.'
+                    : 'FixIt AI connectivity OK'),
         ],
         'finish_reason' => 'stop',
     ]],

@@ -35,6 +35,25 @@ final class RepairSessionService
         return $session;
     }
 
+    public function recordFollowUp(RepairSession $session, string $answer, string $result): RepairSession
+    {
+        $session->addObservation('user', $answer, 'follow_up_answer');
+        $session->addObservation('assistant', $result, 'follow_up_result');
+        $session->forceFill(['status' => 'awaiting_follow_up'])->save();
+
+        return $session;
+    }
+
+    public function latestFollowUp(RepairSession $session): ?string
+    {
+        $result = $session->observations()
+            ->where('kind', 'follow_up_result')
+            ->latest('id')
+            ->value('content');
+
+        return is_string($result) && $result !== '' ? $result : null;
+    }
+
     public function discard(RepairSession $session): void
     {
         $session->delete();
