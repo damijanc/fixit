@@ -6,7 +6,7 @@ Updated: 2026-10-27
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `task/t9-screens` (Home, Diagnosis, Result, History).
+- Active branch: `task/t10-android-ci` (Android CI + release packaging).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
 - Host test suite: VERIFIED — 53 tests, 347 assertions.
@@ -18,16 +18,19 @@ Updated: 2026-10-27
 - Multi-turn follow-up: **VERIFIED** on emulator — prior photo prompt + assistant result + user answer sent as a conversation; response persisted and restored after relaunch. Evidence: `docs/evidence/2026-10-27-emulator-followup-restored.png`.
 - Deterministic safety filtering: **VERIFIED** by unit + UI tests — hazardous instructions are blocked before display; mains/gas mentions escalate; blocked raw text is not stored.
 - Screens: **VERIFIED on emulator** — Home landing, Diagnosis, Result and History with navigation and saved-session lists. Evidence: `docs/evidence/2026-10-27-emulator-home-screens.png`, `...-history.png`, `...-result-screen.png`.
+- Android release build: **local signed release APK VERIFIED** — 76.77 MB, `apksigner` certificate checked, installed and launched on the `Pixel_9a` emulator. Built with an ephemeral local keystore.
+- Android CI: `.github/workflows/android.yml` added (signed release APK artifact, secrets or ephemeral CI key); GitHub run not yet observed.
+- Release docs: `docs/JUDGE_GUIDE.md`, `docs/RELEASE.md`, `docs/DEMO.md`, `scripts/build-release.sh` added. Demo video not recorded.
 - Provider: **DeepSeek** (`https://api.deepseek.com`, `deepseek-flash`, vision-capable) is the configured default.
 - Secure provider key: **VERIFIED** — entered in Settings, encrypted at rest with the Keystore-managed `APP_KEY`, absent from `.env` and the APK; remove works. ADR 0003. Keys must include the `sk-` prefix.
-- Release work (signed APK, Android CI, demo) is the main remaining scope.
-- CI: PHP test workflow VERIFIED on GitHub Actions; Android CI build still pending (T10).
+- Remaining: CI run verification, stable release-signing secrets, physical install of the release APK, demo video.
+- CI: PHP test workflow VERIFIED on GitHub Actions; Android CI build pending first run.
 
 ## Next step
-T10/T11: Android CI build, signed release APK, judge setup guide and demo. Physical-device pass of the new screens is still desirable.
+T10/T11: observe the first Android CI run, add stable signing secrets if desired, install the release APK on the ZTE, and record the demo video. Physical-device pass of the new screens remains desirable.
 
 ## Known risks
-- Signed CI APK build unimplemented.
+- Android CI workflow has not run yet; Gradle/SDK setup may need adjustment.
 - The official NativePHP SecureStorage plugin requires authenticated plugin access; ADR 0003 uses encrypted file storage with the Keystore-managed `APP_KEY` instead.
 - DeepSeek vision mapping (base64 `image_url`) is verified; vision token cost is bounded (~1024 tokens/image) but not yet metered in-app.
 - The camera plugin uses the Android system camera intent, so confirmation UI is controlled by the OS app; the new hint mitigates but does not remove the hand-off.
@@ -177,6 +180,17 @@ T10/T11: Android CI build, signed release APK, judge setup guide and demo. Physi
 - Not verified: physical-device pass of the new screens; release build.
 - Blockers/decisions: Home shows the latest session; `/diagnosis` is a fresh session, `/diagnosis/{id}` resumes a saved one. History is capped at 30 sessions.
 - Next executable action: T10/T11 — Android CI build, signed release APK, judge guide and demo.
+
+### 2026-10-27 — T10/T11 Android CI + release packaging
+- Branch/PR: `task/t10-android-ci` (PR #16).
+- Changed files: `.github/workflows/android.yml`; `scripts/build-release.sh`; `docs/JUDGE_GUIDE.md`, `docs/RELEASE.md`, `docs/DEMO.md`; README/.gitignore/STATUS/TASKS/spec 005.
+- Implemented: CI job that installs PHP/JDK 17/Android SDK 36, builds a signed release APK with repository secrets or an ephemeral CI key, verifies it with `apksigner`, and uploads the artifact. Local release-build script and judge/release/demo docs.
+- Verified (command, environment/device, result):
+  - `php artisan test` — 53 passed, 347 assertions.
+  - Local `native:package android --build-type=release` with a throwaway keystore — produced a 76.77 MB APK; `apksigner verify` showed the expected certificate; installed and launched on the `Pixel_9a` emulator.
+- Not verified: first GitHub Actions Android run; stable release signing identity; physical-device release install; demo video.
+- Blockers/decisions: NativePHP's release-build warning says “unsigned” even when `apksigner` confirms signing; treated as a false warning but noted. CI falls back to an ephemeral keystore when secrets are absent, so artifact identity is not stable.
+- Next executable action: observe the Android workflow, add `ANDROID_KEYSTORE_BASE64`/passwords/alias secrets for a stable identity, install on the ZTE, record the demo.
 
 ## Handoff entry template
 ### YYYY-MM-DD — task
