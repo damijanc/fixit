@@ -78,6 +78,22 @@ jobs:
             echo "KEY_PASSWORD=$KEY_PASS"
           } >> "$GITHUB_ENV"
 
+      - name: Validate signing key
+        run: |
+          keytool -list -v \
+            -keystore "$KEYSTORE_PATH" \
+            -storepass "$STORE_PASSWORD" \
+            -alias "$KEY_ALIAS" | grep -E "Alias name|Owner|Valid from" || true
+
+          keytool -certreq \
+            -alias "$KEY_ALIAS" \
+            -keystore "$KEYSTORE_PATH" \
+            -storepass "$STORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
+            -file "$RUNNER_TEMP/fixit-ci.csr"
+
+          rm -f "$RUNNER_TEMP/fixit-ci.csr"
+
       - name: Build signed release APK
         run: |
           php artisan native:package android \
