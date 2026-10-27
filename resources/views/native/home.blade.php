@@ -90,8 +90,18 @@
                     class="mt-4 h-48 w-full rounded-xl object-cover"
                 />
 
+                <native:outlined-text-input
+                    ref="symptoms-input"
+                    class="mt-4 w-full"
+                    label="Describe the symptoms"
+                    placeholder="e.g. no water flow, strange noise…"
+                    multiline
+                    native:model="symptoms"
+                    a11y-label="Symptoms"
+                />
+
                 <text ref="upload-consent" class="mt-4 text-xs text-theme-on-surface-variant">
-                    Sending uploads this photo to DeepSeek for analysis. Do not send photos containing people, documents or personal information.
+                    Sending uploads this photo and symptoms to DeepSeek for analysis. Do not send photos containing people, documents or personal information.
                 </text>
 
                 <native:button
@@ -124,6 +134,16 @@
                     a11y-label="Camera result"
                 >
                     {{ $cameraStatus }}
+                </text>
+            @endif
+
+            @if ($sessionNotice !== '')
+                <text
+                    ref="session-notice"
+                    class="mt-2 text-xs text-theme-on-surface-variant"
+                    a11y-label="Session status"
+                >
+                    {{ $sessionNotice }}
                 </text>
             @endif
 

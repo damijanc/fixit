@@ -177,7 +177,18 @@ Verified 2026-10-27:
 - Failure path: simulated 402 preserved the photo/preview and showed a safe balance error.
 - `php artisan test`: 33 passed, 186 assertions.
 
-A separate symptoms field is not in the current screen; it is planned with the session/follow-up work (T5/T6).
+The symptoms field is included in the prompt and stored on the session; multi-turn follow-up is still pending (T6).
+
+## Repair sessions (T5)
+
+- The app stores repair sessions and observations in SQLite at `app_storage/persisted_data/database/database.sqlite` on device.
+- Capturing a photo creates a session; symptoms, the vision prompt and the result are stored.
+- On launch, Home restores the latest session (photo preview, symptoms and result).
+- **Discard photo** deletes the session and the local photo.
+- NativePHP does not run migrations on device, so `AppServiceProvider` creates the session schema once on first boot with `migrate --force`. Host/CI runs use the normal explicit `php artisan migrate`.
+
+Verified 2026-10-27 on the `Pixel_9a` emulator: captured a photo, entered symptoms, ran a fake-provider vision request, force-stopped and relaunched the app; the session and result were restored. Evidence: [evidence/2026-10-27-emulator-session-restored.png](evidence/2026-10-27-emulator-session-restored.png).
+
 
 
 
