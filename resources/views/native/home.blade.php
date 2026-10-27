@@ -41,6 +41,16 @@
                 {{ $aiStatus }}
             </text>
         @endif
+
+        <native:button
+            ref="open-settings-button"
+            class="mt-4 w-full"
+            a11y-label="Provider settings"
+            a11y-hint="Set or remove the provider API key"
+            @tap="openSettings"
+        >
+            Provider settings
+        </native:button>
     </column>
 
     <column

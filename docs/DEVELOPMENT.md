@@ -66,48 +66,56 @@ composer test
 
 Tests use in-memory SQLite and `.env.testing`; no device is needed.
 
-## AI provider smoke test
+## AI provider settings (DeepSeek)
 
-The app talks to any OpenAI-compatible endpoint through Symfony AI's generic bridge (`{base_url}/v1/chat/completions`).
+FixIt talks to DeepSeek's OpenAI-compatible endpoint through Symfony AI's generic bridge (`{base_url}/v1/chat/completions`).
 
-Configuration (non-secret):
+Non-secret configuration in `.env`:
 
 ```dotenv
-FIXIT_AI_BASE_URL=https://api.openai.com
-FIXIT_AI_MODEL=gpt-4o-mini
-FIXIT_AI_TIMEOUT=30
+FIXIT_AI_BASE_URL=https://api.deepseek.com
+FIXIT_AI_MODEL=deepseek-flash
+FIXIT_AI_TIMEOUT=60
 ```
 
-**Do not put a real API key in `.env` for an Android build.** NativePHP bundles `.env` into the APK. `FIXIT_AI_API_KEY` exists only for local host testing until T8 adds Android Keystore-backed key entry.
+**The API key is never configured in `.env`.** It is entered in the app under **Provider settings** and encrypted with the NativePHP-managed `APP_KEY`; only ciphertext is written to app-private storage. NativePHP strips `APP_KEY` from the bundled `.env` and supplies it from Android Keystore at runtime, so the saved key cannot be recovered from the APK or a copied storage file.
 
-Host check against the bundled fake provider:
+### Enter the key
+
+1. Run the app on the emulator/device.
+2. Tap **Provider settings**.
+3. Paste the DeepSeek key from `https://platform.deepseek.com/api_keys`.
+4. Tap **Save key** → **Test connection**.
+5. Expected: `Connected: FixIt AI connectivity OK`.
+
+The key survives an app restart. **Remove saved key** deletes it.
+
+### Verify against the local fake provider (no real key)
 
 ```bash
 php -S 0.0.0.0:8099 scripts/dev/fake-openai-server.php
-FIXIT_AI_BASE_URL=http://127.0.0.1:8099 \
-FIXIT_AI_MODEL=fixit-fake \
-FIXIT_AI_API_KEY=test-key \
-php artisan fixit:ai-smoke
-# => FixIt AI connectivity OK
 ```
 
-Emulator check:
+Point the app at it before building:
 
-```bash
-# terminal 1: fake provider on the host
-php -S 0.0.0.0:8099 scripts/dev/fake-openai-server.php
-
-# .env: point at the emulator host alias
+```dotenv
 FIXIT_AI_BASE_URL=http://10.0.2.2:8099
 FIXIT_AI_MODEL=fixit-fake
-FIXIT_AI_API_KEY=test-key
-
-php artisan native:run android emulator-5554 --no-tty --no-vite
 ```
 
-Then tap **Test AI connection** on the home screen. A successful call shows `OK: FixIt AI connectivity OK`. Evidence: [evidence/2026-10-26-android-emulator-ai-ok.png](evidence/2026-10-26-android-emulator-ai-ok.png).
+Then build, open Settings, save `test-key`, and tap **Test connection**. Evidence: [evidence/2026-10-26-android-emulator-settings-connected.png](evidence/2026-10-26-android-emulator-settings-connected.png). The final settings screen with DeepSeek defaults: [evidence/2026-10-26-android-emulator-settings.png](evidence/2026-10-26-android-emulator-settings.png).
 
-A real provider call from the emulator is intentionally deferred until T8: the key must come from secure on-device storage instead of the bundled `.env`.
+### What was verified on the emulator (2026-10-26)
+
+- Key saved from the Settings UI, not `.env`.
+- Saved key persisted across an app restart.
+- Test connection used the decrypted key and reached the fake OpenAI-compatible provider.
+- On-device file: `app_storage/persisted_data/storage/app/private/ai-key.enc`, mode `0600`, 228-byte AES ciphertext; **zero plaintext occurrences** of the test key.
+- Pulled APK and bundled `.env`: **zero occurrences** of the test key; `APP_KEY` is absent from the bundle.
+- Remove saved key deleted the ciphertext file.
+
+A real DeepSeek call is the remaining step; it needs a key from your DeepSeek account.
+
 
 ## Camera check (T4 spike)
 

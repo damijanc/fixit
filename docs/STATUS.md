@@ -6,26 +6,27 @@ Updated: 2026-10-26
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `task/t4-camera-spike` (stacked on T3/#6).
+- Active branch: `task/t8-secure-key-settings` (stacked on T4/#7).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 15 tests, 53 assertions.
+- Host test suite: VERIFIED — 25 tests, 124 assertions.
 - Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37), package `com.fixit.app`.
 - Physical-device build/launch: DEFERRED by decision on 2026-10-26; continue development and testing on the emulator, re-check on a real device once the build is ready to try.
-- Symfony AI in embedded Android PHP: VERIFIED on the emulator against a local OpenAI-compatible fake provider; a real provider call is pending T8 secure key storage.
+- Symfony AI in embedded Android PHP: VERIFIED on the emulator against a local OpenAI-compatible fake provider; a real DeepSeek call is pending only a user-entered key.
 - Camera capture in embedded Android PHP: **VERIFIED** on the emulator — permission prompt, system camera, 1440×1920 JPEG written to app-private storage, path returned to PHP and preview rendered. Evidence: `docs/evidence/2026-10-26-android-emulator-camera.png`.
-- Provider decision: **DeepSeek** (OpenAI-compatible, `https://api.deepseek.com`, `deepseek-flash` supports vision). Not wired into config defaults yet.
-- FixIt home screen with AI connectivity and camera checks: IMPLEMENTED and emulator-tested.
-- Sessions, safety checks, secure key storage, vision upload, full diagnosis screens: PLANNED.
+- Provider: **DeepSeek** (`https://api.deepseek.com`, `deepseek-flash`, vision-capable) is the configured default.
+- Secure provider key: **VERIFIED** on the emulator — entered in Settings, stored as AES ciphertext in app-private storage using the Keystore-managed `APP_KEY`, persisted across restart, absent from `.env` and the APK; remove works. ADR 0003.
+- FixIt home + provider settings screens: IMPLEMENTED and emulator-tested.
+- Sessions, safety checks, vision upload, diagnosis/result/history screens: PLANNED.
 - CI: PHP test workflow VERIFIED on GitHub Actions; Android CI build still pending (T10).
 
 ## Next step
-T4: send the captured photo to DeepSeek's vision model with explicit user consent, then T8 secure key storage for a real key. Physical-device T2 verification is deferred until the build is ready to try on hardware.
+T4: send the captured photo to DeepSeek `deepseek-flash` with explicit user consent and show the vision result. A real DeepSeek text call can be made as soon as a key is entered in Settings. Physical-device T2 verification is deferred until the build is ready to try on hardware.
 
 ## Known risks
 - Physical-device behaviour (embedded PHP, WebView, camera, permissions) is still unproven.
-- Secure key storage and signed CI APK build unimplemented.
-- A real provider key must not go into `.env` for an APK build; T8 is the prerequisite for a real on-device call.
+- Signed CI APK build unimplemented.
+- The official NativePHP SecureStorage plugin requires authenticated plugin access; ADR 0003 uses encrypted file storage with the Keystore-managed `APP_KEY` instead.
 - DeepSeek vision takes base64/URL images via the OpenAI-compatible endpoint; the Symfony AI generic bridge mapping for image content still needs a real test.
 - NativePHP `native:build` is iOS-only; Android uses `native:run`/`native:package`.
 - Host PHP minor must match `nativephp.lock` (currently 8.5.12).
@@ -70,6 +71,22 @@ T4: send the captured photo to DeepSeek's vision model with explicit user consen
 - Not verified: physical-device camera; in-app camera preview (plugin uses the system camera intent); image upload/vision request.
 - Blockers/decisions: camera is a **GO** on the emulator. The plugin uses the system camera app, which is acceptable for T4 but means the UI hands off to Android. Photo upload must remain opt-in with explicit consent.
 - Next executable action: T4 — configure DeepSeek (`https://api.deepseek.com`, model `deepseek-flash`) and send the captured JPEG as a base64 `image_url` content part through Symfony AI after consent, first against the local fake provider.
+
+### 2026-10-26 — T8 secure provider key settings
+- Branch/PR: `task/t8-secure-key-settings` (PR #8).
+- Changed files: added `ApiKeyStore`, `EncryptedFileApiKeyStore`; updated `ModelGateway` and `AppServiceProvider`; added `Settings` NativeComponent + `resources/views/native/settings.blade.php` + `/settings` route; added Provider settings entry to Home; removed `AiSmokeCommand`; switched `config/ai.php` and `.env.example` to DeepSeek defaults with no key; added tests (`SettingsTest`, `EncryptedFileApiKeyStoreTest`, in-memory key store) and updated `ModelGatewayTest`/`HomeTest`; updated DEVELOPMENT, STATUS, TASKS, README, architecture; added ADR 0003; added settings evidence screenshots.
+- Implemented: key entry from the app UI, encrypted at rest, test/remove actions, no `.env` key path, DeepSeek defaults.
+- Verified (command, environment/device, result):
+  - `php artisan test` — host — 25 passed, 124 assertions.
+  - Emulator `Pixel_9a`, Android 17 / API 37 — saved `sk-fixit-secure-test-123` via Settings; app showed `A key is saved on this device`; Test connection returned `Connected: FixIt AI connectivity OK` against the local fake provider.
+  - Force-stopped and relaunched the app — key still present; Test connection succeeded again.
+  - On-device ciphertext: `app_storage/persisted_data/storage/app/private/ai-key.enc`, mode `0600`, 228 bytes, **0** plaintext occurrences.
+  - Pulled APK + bundled `.env`: **0** occurrences of the test key; no `APP_KEY` in the bundle.
+  - **Remove saved key** deleted the ciphertext file and showed `No key saved yet.`
+  - Final rebuild with `https://api.deepseek.com` / `deepseek-flash` and no saved key: Settings shows DeepSeek defaults and `No key saved yet.`
+- Not verified: real DeepSeek call (needs the user's key); physical device; vision upload.
+- Blockers/decisions: the official `nativephp/mobile-secure-storage` plugin requires authenticated plugin access (HTTP 401), so ADR 0003 uses Laravel `Crypt` with the NativePHP Keystore-managed `APP_KEY` and app-private ciphertext. The input must use live `native:model` sync; `.blur` can race the Save action.
+- Next executable action: enter a real DeepSeek key in Settings and tap Test connection; then build T4 vision upload.
 
 ## Handoff entry template
 ### YYYY-MM-DD — task

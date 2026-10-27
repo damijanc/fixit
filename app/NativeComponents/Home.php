@@ -46,6 +46,11 @@ class Home extends NativeComponent
         }
     }
 
+    public function openSettings(): void
+    {
+        $this->navigate('/settings');
+    }
+
     public function takePhoto(): void
     {
         $this->cameraStatus = 'Opening the camera…';

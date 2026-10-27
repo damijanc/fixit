@@ -8,6 +8,6 @@ final class MissingApiKeyException extends AiException
 {
     public static function forProvider(): self
     {
-        return new self('No API key configured. Add a provider key before contacting the model.');
+        return new self('No provider API key saved. Add your DeepSeek key in Settings.');
     }
 }
