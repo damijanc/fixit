@@ -8,6 +8,7 @@ use App\Models\RepairSession;
 use App\Services\AI\AiException;
 use App\Services\AI\ModelGateway;
 use App\Services\Repair\RepairSessionService;
+use App\Services\Safety\SafetyFilter;
 use Illuminate\View\View;
 use Native\Mobile\Attributes\On;
 use Native\Mobile\Edge\NativeComponent;
@@ -51,6 +52,8 @@ class Home extends NativeComponent
 
     public bool $followUpBusy = false;
 
+    public string $safetyNotice = '';
+
     public function mount(): void
     {
         $session = app(RepairSessionService::class)->latest();
@@ -69,6 +72,10 @@ class Home extends NativeComponent
 
         if ($this->visionResult !== '') {
             $this->visionStatus = 'Resumed the previous repair session.';
+        }
+
+        if ($session->status === 'escalated') {
+            $this->safetyNotice = 'This session was escalated for safety. Use a qualified professional for mains or gas work.';
         }
 
         $followUp = app(RepairSessionService::class)->latestFollowUp($session);
@@ -130,6 +137,7 @@ class Home extends NativeComponent
         $this->followUpAnswer = '';
         $this->followUpStatus = '';
         $this->followUpResult = '';
+        $this->safetyNotice = '';
 
         $session = app(RepairSessionService::class)->startWithPhoto($path, trim($this->symptoms));
         $this->sessionId = $session->id;
@@ -170,6 +178,7 @@ class Home extends NativeComponent
         $this->followUpAnswer = '';
         $this->followUpStatus = '';
         $this->followUpResult = '';
+        $this->safetyNotice = '';
         $this->cameraStatus = 'Photo discarded.';
     }
 
@@ -188,6 +197,7 @@ class Home extends NativeComponent
         $this->visionBusy = true;
         $this->visionStatus = 'Uploading the photo to DeepSeek for analysis…';
         $this->visionResult = '';
+        $this->safetyNotice = '';
 
         try {
             $prompt = $this->visionPrompt();
@@ -206,9 +216,15 @@ class Home extends NativeComponent
                 $session->forceFill(['symptoms' => trim($this->symptoms)])->save();
             }
 
-            app(RepairSessionService::class)->recordVisionResult($session, $prompt, $result);
+            $assessment = app(SafetyFilter::class)->assess($result);
+            $status = $assessment->blocked || $assessment->escalated ? 'escalated' : 'awaiting_follow_up';
 
-            $this->visionResult = $result;
+            app(RepairSessionService::class)->recordVisionResult($session, $prompt, $assessment->text, $status);
+
+            $this->visionResult = $assessment->text;
+            $this->safetyNotice = $assessment->blocked
+                ? 'Safety filter blocked unsafe guidance. This needs a qualified professional.'
+                : ($assessment->escalated ? 'Safety note: mains or gas risk. Use a qualified professional.' : '');
             $this->visionStatus = 'DeepSeek response received. Check every suggestion before acting on it.';
             $this->followUpAnswer = '';
             $this->followUpStatus = '';
@@ -268,10 +284,16 @@ PROMPT;
                 $this->followUpConversation($session, $answer),
             );
 
-            app(RepairSessionService::class)->recordFollowUp($session, $answer, $result);
+            $assessment = app(SafetyFilter::class)->assess($result);
+            $status = $assessment->blocked || $assessment->escalated ? 'escalated' : 'awaiting_follow_up';
+
+            app(RepairSessionService::class)->recordFollowUp($session, $answer, $assessment->text, $status);
 
             $this->followUpAnswer = '';
-            $this->followUpResult = $result;
+            $this->followUpResult = $assessment->text;
+            $this->safetyNotice = $assessment->blocked
+                ? 'Safety filter blocked unsafe guidance. This needs a qualified professional.'
+                : ($assessment->escalated ? 'Safety note: mains or gas risk. Use a qualified professional.' : '');
             $this->followUpStatus = 'Follow-up saved locally.';
         } catch (AiException $exception) {
             $this->followUpStatus = $exception->getMessage();

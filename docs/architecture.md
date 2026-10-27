@@ -22,11 +22,14 @@ Photos must be uploaded only on user action. API credentials must never be hardc
 ## Safety
 Support low-risk, non-invasive troubleshooting. No instructions for opening mains-powered appliances, servicing gas equipment, defeating interlocks, or hazardous tests. Escalate to qualified professionals when appropriate. AI confidence is not a calibrated probability.
 
+A deterministic `SafetyFilter` scans model output before display, blocks hazardous instructions, escalates mains/gas mentions, and never stores blocked raw text. Prompt instructions plus the deterministic filter are both required.
+
 ## Technical spikes
 - Embedded PHP extensions and Symfony AI HTTP compatibility — **verified on emulator with a fake provider and on physical ZTE with real DeepSeek text and image calls** (2026-10-27)
 - Camera image handling — **verified on emulator and physical ZTE 8050**: system camera intent, app-private JPEG, path returned to PHP (2026-10-27)
 - Vision upload — **verified with explicit consent** on emulator (fake provider) and physical ZTE (real `deepseek-flash` image response); base64 `image_url` via Symfony AI (2026-10-27)
 - SQLite repair sessions — **verified on emulator**: session/observations persist and restore after force-stop/relaunch (2026-10-27)
 - Multi-turn follow-up — **verified on emulator**: stored photo prompt + prior result + answer sent as a conversation and restored after relaunch (2026-10-27)
+- Deterministic safety filter — **verified by tests**: hazardous mains/gas/interlock instructions blocked before display; mains/gas mentions escalated (2026-10-27)
 - Secure local provider key storage — **verified on emulator** (ADR 0003): encrypted at rest with the NativePHP Keystore-managed `APP_KEY`, entered in app Settings
 - Signed APK build in GitHub Actions — pending

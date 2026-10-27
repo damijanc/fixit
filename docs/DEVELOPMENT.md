@@ -191,6 +191,19 @@ Verified 2026-10-27 on the `Pixel_9a` emulator: captured a photo, entered sympto
 
 After the vision result, **Continue the diagnosis** sends the stored photo prompt, prior assistant result and new answer as a text conversation (the image is not re-uploaded). The answer and response are stored as observations and restored after relaunch. Evidence: [evidence/2026-10-27-emulator-followup-restored.png](evidence/2026-10-27-emulator-followup-restored.png).
 
+## Safety filter (T7)
+
+`App\Services\Safety\SafetyFilter` scans each model-output sentence before display:
+
+- Blocks mains work, live wiring, gas work, opening appliance cases, bypassing interlocks, hazardous probing and microwaves.
+- Ignores a sentence that is explicitly negated (`do not`, `never`, `avoid`).
+- Escalates any mains/gas mention with a qualified-professional warning.
+- Replaces blocked output with a safe referral message and never stores the raw hazardous text.
+- Marks the session `escalated`.
+
+Covered by unit and UI tests; `php artisan test` includes dangerous-output cases. This is a deterministic backstop, not a substitute for the prompt or professional judgement.
+
+
 
 
 

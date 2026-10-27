@@ -157,6 +157,16 @@
                 </text>
             @endif
 
+            @if ($safetyNotice !== '')
+                <text
+                    ref="safety-notice"
+                    class="mt-3 w-full rounded-lg border border-theme-outline bg-theme-surface-variant p-3 text-xs font-bold text-theme-on-surface"
+                    a11y-label="Safety notice"
+                >
+                    {{ $safetyNotice }}
+                </text>
+            @endif
+
             @if ($visionResult !== '')
                 <column
                     ref="vision-result-card"
