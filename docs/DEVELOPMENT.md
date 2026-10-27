@@ -75,6 +75,7 @@ Non-secret configuration in `.env`:
 ```dotenv
 FIXIT_AI_BASE_URL=https://api.deepseek.com
 FIXIT_AI_MODEL=deepseek-flash
+FIXIT_AI_KEY_PREFIX=sk-
 FIXIT_AI_TIMEOUT=60
 ```
 
@@ -84,7 +85,7 @@ FIXIT_AI_TIMEOUT=60
 
 1. Run the app on the emulator/device.
 2. Tap **Provider settings**.
-3. Paste the DeepSeek key from `https://platform.deepseek.com/api_keys`.
+3. Paste the **full** DeepSeek key from `https://platform.deepseek.com/api_keys`, including the `sk-` prefix. The app rejects keys without it.
 4. Tap **Save key** → **Test connection**.
 5. Expected: `Connected: FixIt AI connectivity OK`.
 
@@ -103,7 +104,7 @@ FIXIT_AI_BASE_URL=http://10.0.2.2:8099
 FIXIT_AI_MODEL=fixit-fake
 ```
 
-Then build, open Settings, save `test-key`, and tap **Test connection**. Evidence: [evidence/2026-10-26-android-emulator-settings-connected.png](evidence/2026-10-26-android-emulator-settings-connected.png). The final settings screen with DeepSeek defaults: [evidence/2026-10-26-android-emulator-settings.png](evidence/2026-10-26-android-emulator-settings.png).
+Then build, open Settings, save `sk-test-key`, and tap **Test connection**. Evidence: [evidence/2026-10-26-android-emulator-settings-connected.png](evidence/2026-10-26-android-emulator-settings-connected.png). The final settings screen with DeepSeek defaults: [evidence/2026-10-26-android-emulator-settings.png](evidence/2026-10-26-android-emulator-settings.png).
 
 ### What was verified on the emulator (2026-10-26)
 
@@ -114,7 +115,12 @@ Then build, open Settings, save `test-key`, and tap **Test connection**. Evidenc
 - Pulled APK and bundled `.env`: **zero occurrences** of the test key; `APP_KEY` is absent from the bundle.
 - Remove saved key deleted the ciphertext file.
 
-A real DeepSeek call is the remaining step; it needs a key from your DeepSeek account.
+### Real DeepSeek call (2026-10-27)
+
+- Physical **ZTE 8050** (Android 13 / API 33): entered the full `sk-...` key in Settings and tapped **Test connection**.
+- Result: `Connected: FixIt AI connectivity OK` from `deepseek-flash` at `https://api.deepseek.com`.
+- Evidence: [evidence/2026-10-27-zte-deepseek-connected.png](evidence/2026-10-27-zte-deepseek-connected.png).
+- A key pasted without `sk-` fails with 401; the app now catches that before saving and shows a prefix-specific message.
 
 
 ## Camera check (T4 spike)

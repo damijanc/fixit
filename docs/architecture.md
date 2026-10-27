@@ -9,7 +9,7 @@ Android / NativePHP (embedded Laravel + PHP)
         └── HTTPS → user-selected vision-capable model
 ```
 
-No separate Symfony server. Running Symfony AI within NativePHP's embedded Android PHP runtime was **verified on an emulator on 2026-10-26** against a local OpenAI-compatible fake provider (real provider credentials still pending secure storage). The integration uses the standalone `symfony/ai-agent`, `symfony/ai-platform` and `symfony/ai-generic-platform` packages with an injectable platform for mock-based tests.
+No separate Symfony server. Running Symfony AI within NativePHP's embedded Android PHP runtime is **verified**: on 2026-10-26 against a local fake provider on the emulator, and on 2026-10-27 with a **real DeepSeek `deepseek-flash` call from a physical ZTE 8050**. The integration uses the standalone `symfony/ai-agent`, `symfony/ai-platform` and `symfony/ai-generic-platform` packages with an injectable platform for mock-based tests.
 
 ## Responsibilities
 - NativePHP: Android integration and UI
@@ -23,7 +23,7 @@ Photos must be uploaded only on user action. API credentials must never be hardc
 Support low-risk, non-invasive troubleshooting. No instructions for opening mains-powered appliances, servicing gas equipment, defeating interlocks, or hazardous tests. Escalate to qualified professionals when appropriate. AI confidence is not a calibrated probability.
 
 ## Technical spikes
-- Embedded PHP extensions and Symfony AI HTTP compatibility — **verified on emulator with a fake provider** (2026-10-26)
+- Embedded PHP extensions and Symfony AI HTTP compatibility — **verified on emulator with a fake provider and on physical ZTE with a real DeepSeek call** (2026-10-27)
 - Camera image handling — **verified on emulator and physical ZTE 8050**: system camera intent, app-private JPEG, path returned to PHP (2026-10-27)
 - Secure local provider key storage — **verified on emulator** (ADR 0003): encrypted at rest with the NativePHP Keystore-managed `APP_KEY`, entered in app Settings
 - Signed APK build in GitHub Actions — pending

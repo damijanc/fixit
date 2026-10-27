@@ -39,6 +39,10 @@
             a11y-label="DeepSeek API key"
         />
 
+        <text ref="key-prefix-hint" class="mt-2 text-xs text-theme-on-surface-variant">
+            DeepSeek keys start with {{ config('ai.key_prefix', 'sk-') }}.
+        </text>
+
         <native:button
             ref="save-key-button"
             variant="primary"

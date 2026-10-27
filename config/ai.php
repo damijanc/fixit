@@ -19,5 +19,7 @@ return [
 
     'provider_name' => env('FIXIT_AI_PROVIDER_NAME', 'DeepSeek'),
 
+    'key_prefix' => env('FIXIT_AI_KEY_PREFIX', 'sk-'),
+
     'timeout' => (int) env('FIXIT_AI_TIMEOUT', 60),
 ];

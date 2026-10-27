@@ -2,7 +2,7 @@
 
 Android-only AI-guided repair assistant. NativePHP + Laravel, standalone Symfony AI packages, local SQLite and a user-supplied model key.
 
-> **Status:** bootstrap stage. The app runs on an Android emulator and a physical **ZTE 8050**, completes a Symfony AI round-trip against a local OpenAI-compatible fake provider, captures photos through the native camera into app-private storage, and stores a user-entered provider key securely from Settings. It has not yet called real DeepSeek or sent a photo to a vision model. See [docs/STATUS.md](docs/STATUS.md) and [docs/TASKS.md](docs/TASKS.md).
+> **Status:** the app runs on an Android emulator and a physical **ZTE 8050**, completes a **real DeepSeek `deepseek-flash` call** from embedded PHP, captures photos through the native camera into app-private storage, and stores a user-entered provider key securely from Settings. It has not yet sent a photo to a vision model or produced a signed release APK. See [docs/STATUS.md](docs/STATUS.md) and [docs/TASKS.md](docs/TASKS.md).
 
 ## Quick start
 
@@ -18,8 +18,7 @@ php artisan test
 Then:
 
 ```bash
-./native build android   # debug APK; T2, not verified yet
-php artisan native:run android
+php artisan native:run android   # debug build + install on a connected device
 ```
 
 ## Documentation
