@@ -2,7 +2,7 @@
 
 Android-only AI-guided repair assistant. NativePHP + Laravel, standalone Symfony AI packages, local SQLite and a user-supplied model key.
 
-> **Status:** the app runs on an Android emulator and a physical **ZTE 8050**, completes real DeepSeek `deepseek-flash` text and image calls from embedded PHP, captures photos, stores them locally until explicit consent, persists repair sessions and follow-up turns in SQLite across restarts, filters hazardous model output deterministically, and keeps the provider key in on-device encrypted storage. The full diagnosis/history screens and release packaging are still pending. See [docs/STATUS.md](docs/STATUS.md) and [docs/TASKS.md](docs/TASKS.md).
+> **Status:** the app runs on an Android emulator and a physical **ZTE 8050**, completes real DeepSeek `deepseek-flash` text and image calls from embedded PHP, captures photos, stores them locally until explicit consent, persists repair sessions and follow-up turns in SQLite, filters hazardous model output deterministically, and keeps the provider key in on-device encrypted storage. Home, Diagnosis, Result and History screens are in place. Signed release packaging and the demo remain. See [docs/STATUS.md](docs/STATUS.md) and [docs/TASKS.md](docs/TASKS.md).
 
 ## Quick start
 

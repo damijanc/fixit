@@ -203,6 +203,17 @@ After the vision result, **Continue the diagnosis** sends the stored photo promp
 
 Covered by unit and UI tests; `php artisan test` includes dangerous-output cases. This is a deterministic backstop, not a substitute for the prompt or professional judgement.
 
+## Screens
+
+- `/` — Home landing: start a new diagnosis, resume the latest session, open History or Settings.
+- `/diagnosis` — fresh diagnosis; `/diagnosis/{session}` resumes a saved one.
+- `/result/{session}` — saved photo, symptoms, summary, follow-up and safety notice.
+- `/history` — up to 30 saved sessions, newest first.
+- `/settings` — provider key and connection test.
+
+Verified on the `Pixel_9a` emulator: Home → History → Result navigation, latest-session resume and follow-up display. Evidence: [evidence/2026-10-27-emulator-home-screens.png](evidence/2026-10-27-emulator-home-screens.png), [history](evidence/2026-10-27-emulator-history.png), [result](evidence/2026-10-27-emulator-result-screen.png).
+
+
 
 
 
