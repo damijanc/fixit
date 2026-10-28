@@ -6,7 +6,7 @@ Updated: 2026-10-28
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `task/t13-multi-provider-ai` (multi-provider AI, T13).
+- Active branch: `main` (T13 merged as IMPLEMENTED in PR #18; real-key and physical-device smoke tests pending).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
 - Host test suite: VERIFIED — 94 tests, 581 assertions.
@@ -30,7 +30,7 @@ Updated: 2026-10-28
 - CI: PHP tests + tag-driven Android release VERIFIED on GitHub Actions.
 
 ## Next step
-T13 follow-up: run real-key smoke tests with DeepSeek, OpenRouter (Claude and GPT) and Hugging Face, then repeat on the ZTE 8050. The emulator fake-provider pass and host suite are complete. After that, install the release APK on the ZTE and record the 90-second demo.
+T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSeek, OpenRouter (Claude and GPT) and Hugging Face, then repeat on the ZTE 8050; direct Anthropic/OpenAI if keys are available. The emulator fake-provider pass and host suite are complete. After that, install the release APK on the ZTE and record the 90-second demo.
 
 ## Known risks
 - Real-provider smoke tests are pending; provider/model IDs were checked against live catalogs and Symfony AI 0.15 catalogs, but account access, regional availability and vision pricing can differ.
@@ -232,7 +232,7 @@ T13 follow-up: run real-key smoke tests with DeepSeek, OpenRouter (Claude and GP
 - Next executable action: install the release APK on the ZTE and record the demo.
 
 ### 2026-10-28 — T13 multi-provider AI
-- Branch/PR: `task/t13-multi-provider-ai` (PR #18).
+- Branch/PR: `task/t13-multi-provider-ai` (PR #18, merged to `main` as `f9c7907`).
 - Changed files: `composer.json`/`composer.lock` (Symfony AI Anthropic, Hugging Face, OpenAI bridges); `config/ai.php`; `app/Services/AI/Provider/*` (catalog, settings store, platform factory, registry); `ModelGateway`, exceptions; `AppServiceProvider`; `Settings`/`Diagnosis` components and views; `.env.example`; tests (`ModelGatewayTest`, `SettingsTest`, `DiagnosisTest`, provider unit tests, in-memory/fake test support); docs (spec 006, ADR 0004, architecture, DEVELOPMENT, JUDGE_GUIDE, README, TASKS, STATUS); evidence screenshots.
 - Implemented: curated one-provider/one-model/one-key selection for DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI; Symfony AI bridge factory; encrypted `ai-settings.enc` with legacy `ai-key.enc` migration; provider-named errors; vision capability guard; dynamic provider copy in Diagnosis; removal of the hard-coded `sk-` key rule.
 - Verified (command, environment/device, result):
