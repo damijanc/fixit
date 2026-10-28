@@ -9,7 +9,7 @@ Updated: 2026-10-28
 - Active branch: `main` (T13 merged as IMPLEMENTED in PR #18; real-key and physical-device smoke tests pending).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 94 tests, 581 assertions.
+- Host test suite: VERIFIED — 122 tests, 650 assertions (T15 branch, includes T14).
 - Multi-provider AI (T13): **IMPLEMENTED + emulator fake-provider smoke** — DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI are selectable; one encrypted provider/model/key selection; Symfony AI generic/HF/Anthropic/OpenAI bridges. Host tests cover platform construction, image payloads, migration, provider errors and no key cross-use. Emulator `Pixel_9a`: Settings selection, one-key save and Test connection passed for DeepSeek, OpenRouter and Hugging Face against the local fake provider; Hugging Face vision + multi-turn follow-up passed. Real provider keys and a physical device were not available.
 - Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37) and on a physical **ZTE 8050** (Android 13 / API 33, arm64, serial `LZV50SDEDC3001352`), package `com.fixit.app`.
 - Symfony AI in embedded Android PHP: **VERIFIED with a real DeepSeek call** on the physical ZTE 8050 — `deepseek-flash` returned `FixIt AI connectivity OK`.
@@ -20,6 +20,7 @@ Updated: 2026-10-28
 - Deterministic safety filtering: **VERIFIED** by unit + UI tests — hazardous instructions are blocked before display; mains/gas mentions escalate; blocked raw text is not stored.
 - Screens: **VERIFIED on emulator** — Home landing, Diagnosis, Result and History with navigation and saved-session lists. Evidence: `docs/evidence/2026-10-27-emulator-home-screens.png`, `...-history.png`, `...-result-screen.png`.
 - UI polish (T14): **IMPLEMENTED** on `task/t14-ui-polish` — chat-style diagnosis thread, camera-first Home, cleaner Settings; host tests and emulator screens checked; real-key and physical-device pass pending.
+- Symfony AI clean-up (T15): **IMPLEMENTED** on `task/t15-symfony-ai-refactor` — provider errors (401/404/429/5xx) now show the correct message; one Symfony AI `Agent` per request via `AgentFactory` + `SystemPromptInputProcessor`; prompts and follow-up history moved out of the Diagnosis component. Host tests pass; device pass pending.
 - Android release build: **local signed release APK VERIFIED** — 76.77 MB, `apksigner` certificate checked, installed and launched on the `Pixel_9a` emulator. Built with an ephemeral local keystore.
 - Android CI: **VERIFIED with stable signing** — run 40652416378 (main, 2026-10-28) built and uploaded a signed release APK after a transient NativePHP binary-download retry. `apksigner` shows `CN=FixIt Release, OU=Mobile, O=FixIt, L=Berlin, ST=Berlin, C=DE`.
 - Release publishing: **VERIFIED on tag `v0.0.5-ci-test`** — GitHub Actions run 40659466606 built the signed APK, verified it, created a GitHub Release and attached `app-release.apk` + SHA-256. Test tag/release removed afterwards.
@@ -257,6 +258,22 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
 - Not verified: live photo → AI reply → follow-up flow with a real key on the redesigned screens; physical device; dark mode; large system font sizes; keyboard overlap with the pinned composer.
 - Blockers/decisions: native `select` only takes plain option values (the value is persisted), so dropdowns still show provider/model IDs; the readable names are shown as supporting text. List-item rows paint square backgrounds, so list cards lose their rounded corners.
 - Next executable action: merge, build, and on the ZTE run a real DeepSeek photo + two follow-ups; check keyboard behaviour on the composer and dark mode.
+
+### 2026-10-28 — T15 Symfony AI integration clean-up
+- Branch/PR: `task/t15-symfony-ai-refactor` (PR pending).
+- Changed files: `app/Services/AI/{AiRequestFailedException,ModelGateway}.php`; new `app/Services/AI/{AgentFactory,SymfonyAgentFactory}.php`; new `app/Services/Diagnosis/{DiagnosisPrompts,ConversationBuilder}.php`; `app/NativeComponents/Diagnosis.php` (calls the new services, prompt methods removed); `app/Providers/AppServiceProvider.php` (binds `AgentFactory`); `tests/Support/TestGateway.php`; `tests/Unit/Services/AI/ModelGatewayTest.php`; new `AiRequestFailedExceptionTest`, `SymfonyAgentFactoryTest`, `DiagnosisPromptsTest`, `ConversationBuilderTest`, `tests/Feature/DiagnosisPromptWiringTest.php`; `docs/architecture.md`, `docs/TASKS.md`.
+- Implemented:
+  - Bug fix: Symfony AI throws typed exceptions without an HTTP code, so 401/400/404/429/5xx all showed "could not be reached. Check the internet connection". The type is now mapped to the right message (rate-limit `Retry-After` and context-too-long included).
+  - One Symfony AI `Agent` per request from `SymfonyAgentFactory`, with `SystemPromptInputProcessor`; still one provider/model, no tools, memory or multi-agent.
+  - `ModelGateway` lost its test-only `$platform`/`$model` constructor overrides (vision check and request could disagree) and takes an injected PSR logger.
+  - Safety rules moved into the system prompt (`DiagnosisPrompts`); the stored `photo_prompt` is now only the photo request. Follow-up history building moved to `ConversationBuilder`.
+- Verified (command, environment/device, result):
+  - `php artisan test` — host macOS, PHP 8.5.12, after merging `main` with T14 — 122 passed, 650 assertions.
+  - New exception tests run against the previous `AiRequestFailedException` — 12 failed (including real HTTP 401/429/502 through the generic bridge via `MockHttpClient`), confirming the bug; all pass with the fix.
+  - `vendor/bin/pint --test` on changed files — passed.
+- Not verified: real provider calls and the Android device after this change; model output quality with safety rules moved from the user message to the system prompt.
+- Blockers/decisions: kept `symfony/ai-agent` (hackathon requires Symfony AI; Agent + input processor is the intended extension point). Structured output deferred until per-provider JSON-schema support is checked.
+- Next executable action: on the ZTE with a real DeepSeek key, run Settings → Test connection with a wrong key (expect the 401 message), then a photo + follow-up; confirm replies still respect the safety rules.
 
 
 ## Handoff entry template

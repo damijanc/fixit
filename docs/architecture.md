@@ -6,9 +6,11 @@ Android / NativePHP (embedded Laravel + PHP)
   ├── UI → diagnosis NativeComponent
   ├── SQLite → sessions, observations, repair summaries
   ├── Provider settings → encrypted provider/model/key selection
+  ├── DiagnosisPrompts + ConversationBuilder → system prompt, Symfony AI MessageBag
   └── ModelGateway
-        └── ProviderRegistry → Symfony AI PlatformInterface
-              └── HTTPS → selected provider + model
+        └── AgentFactory → Symfony AI Agent (+ SystemPromptInputProcessor)
+              └── ProviderRegistry → Symfony AI PlatformInterface
+                    └── HTTPS → selected provider + model
 ```
 
 No separate Symfony server. Running Symfony AI within NativePHP's embedded Android PHP runtime is **verified**: on 2026-10-26 against a local fake provider on the emulator, and on 2026-10-27 with **real DeepSeek `deepseek-flash` text and image calls from a physical ZTE 8050**. T13 adds DeepSeek, OpenRouter, Hugging Face, direct Anthropic and direct OpenAI through Symfony AI's 0.15 platform bridges with an injectable platform for mock-based tests.
@@ -23,7 +25,10 @@ No separate Symfony server. Running Symfony AI within NativePHP's embedded Andro
   - Anthropic → `symfony/ai-anthropic-platform`
   - OpenAI → `symfony/ai-open-ai-platform`
 - `ProviderRegistry` resolves the saved selection, enforces a key for the selected provider and vision capability, and constructs the platform lazily.
-- `ModelGateway` is the workflow boundary: `ask`, `askWithImage`, `continueConversation`. It does not know provider IDs.
+- `AgentFactory` (`SymfonyAgentFactory`) builds one Symfony AI `Agent` per request for the saved provider and model, with `SystemPromptInputProcessor` for the system prompt. It is built per request because Settings can change the selection at runtime. FixIt deliberately uses one agent and one model at a time: no toolbox, memory or multi-agent orchestration.
+- `ModelGateway` is the workflow boundary: `ask`, `askWithImage`, `continueConversation`, each with an optional system prompt. It does not know provider IDs. Tests replace only `PlatformFactory`/`ProviderSettingsStore`, so they run the production gateway and agent path.
+- Provider failures arrive as Symfony AI's typed exceptions (`AuthenticationException`, `RateLimitExceededException`, `ServerException`, …), which carry no HTTP code; `AiRequestFailedException::fromProvider` maps the type to a user-safe message and never includes the provider's response body.
+- `DiagnosisPrompts` owns the system prompts (safety rules) and the photo request; `ConversationBuilder` rebuilds a session as a `MessageBag` for follow-ups. The diagnosis screen only calls them.
 - Changing provider/model does not touch the diagnosis component, prompts, safety filter, SQLite schema or repair services. The diagnosis screen only asks the gateway for the current provider's display name.
 
 ## Responsibilities
