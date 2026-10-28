@@ -2,7 +2,7 @@
 
 Android-only AI-guided repair assistant. NativePHP + Laravel, standalone Symfony AI packages, local SQLite and a user-supplied model key.
 
-> **Status:** the app runs on an Android emulator and a physical **ZTE 8050**, completes real DeepSeek `deepseek-flash` text and image calls from embedded PHP, captures photos, stores them locally until explicit consent, persists repair sessions and follow-up turns in SQLite, filters hazardous model output deterministically, keeps the provider key in on-device encrypted storage, and has Home/Diagnosis/Result/History screens. A signed release APK builds and installs on the emulator; Android CI, stable signing secrets, the physical release install and the demo video are the remaining release steps. See [docs/STATUS.md](docs/STATUS.md) and [docs/TASKS.md](docs/TASKS.md).
+> **Status:** the app runs on an Android emulator and a physical **ZTE 8050**, completes real DeepSeek `deepseek-flash` text and image calls from embedded PHP, captures photos, stores them locally until explicit consent, persists repair sessions and follow-up turns in SQLite, filters hazardous model output deterministically, keeps one provider key in on-device encrypted storage, and has Home/Diagnosis/Result/History screens. T13 adds a curated multi-provider catalog (DeepSeek, OpenRouter, Hugging Face, Anthropic, OpenAI) behind Symfony AI; host tests pass and the Android smoke status is tracked in [docs/STATUS.md](docs/STATUS.md). A signed release APK builds and installs on the emulator; Android CI, stable signing secrets, the physical release install and the demo video are the remaining release steps. See [docs/STATUS.md](docs/STATUS.md) and [docs/TASKS.md](docs/TASKS.md).
 
 ## Quick start
 
@@ -25,6 +25,7 @@ php artisan native:run android   # debug build + install on a connected device
 
 - [Product MVP](docs/mvp.md)
 - [Architecture](docs/architecture.md)
+- [Multi-provider AI spec](docs/specs/006-multi-provider-ai/spec.md)
 - [Developer setup](docs/DEVELOPMENT.md)
 - [Judge guide](docs/JUDGE_GUIDE.md)
 - [Release build](docs/RELEASE.md)

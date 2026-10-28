@@ -28,7 +28,10 @@
         "nativephp/mobile-camera": "^1.1",
         "nativephp/mobile-ui": "^0.6",
         "symfony/ai-agent": "^0.15.0",
+        "symfony/ai-anthropic-platform": "^0.15",
         "symfony/ai-generic-platform": "^0.15",
+        "symfony/ai-hugging-face-platform": "^0.15",
+        "symfony/ai-open-ai-platform": "^0.15",
         "symfony/ai-platform": "^0.15.0"
     },
     "require-dev": {

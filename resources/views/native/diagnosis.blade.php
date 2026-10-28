@@ -77,18 +77,18 @@
                 />
 
                 <text ref="upload-consent" class="mt-4 text-xs text-theme-on-surface-variant">
-                    Sending uploads this photo and symptoms to DeepSeek for analysis. Do not send photos containing people, documents or personal information.
+                    Sending uploads this photo and symptoms to {{ $providerName }} for analysis. Do not send photos containing people, documents or personal information.
                 </text>
 
                 <native:button
                     ref="analyze-photo-button"
                     variant="primary"
                     class="mt-3 w-full"
-                    a11y-label="Send photo to DeepSeek"
-                    a11y-hint="Uploads the photo to DeepSeek for a cautious diagnosis"
+                    a11y-label="Send photo to {{ $providerName }}"
+                    a11y-hint="Uploads the photo to {{ $providerName }} for a cautious diagnosis"
                     @tap="analyzePhoto"
                 >
-                    {{ $visionBusy ? 'Sending to DeepSeek…' : 'Send photo to DeepSeek' }}
+                    {{ $visionBusy ? 'Sending to '.$providerName.'…' : 'Send photo to '.$providerName }}
                 </native:button>
 
                 <native:button

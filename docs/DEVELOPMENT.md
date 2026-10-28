@@ -17,6 +17,7 @@ This repository is a conventional Laravel 13 application at the root, extended w
 | NativePHP Mobile | 4.6.1 |
 | Embedded PHP (`nativephp.lock`) | 8.5.12 |
 | Symfony AI Agent / Platform | 0.15.0 |
+| Symfony AI provider bridges | Generic / Hugging Face / Anthropic / OpenAI 0.15.0 |
 | Pest | 4.7.8 |
 | Node.js / npm | 24.11.1 / 11.6.2 (not required by the current app) |
 
@@ -66,30 +67,48 @@ composer test
 
 Tests use in-memory SQLite and `.env.testing`; no device is needed.
 
-## AI provider settings (DeepSeek)
+## AI provider settings
 
-FixIt talks to DeepSeek's OpenAI-compatible endpoint through Symfony AI's generic bridge (`{base_url}/v1/chat/completions`).
+FixIt supports DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI through Symfony AI 0.15 platform bridges. The user selects one provider and one vision-capable model in **Provider settings** and enters one API key.
 
 Non-secret configuration in `.env`:
 
 ```dotenv
+FIXIT_AI_DEFAULT_PROVIDER=deepseek
 FIXIT_AI_BASE_URL=https://api.deepseek.com
-FIXIT_AI_MODEL=deepseek-flash
-FIXIT_AI_KEY_PREFIX=sk-
 FIXIT_AI_TIMEOUT=60
 ```
 
-**The API key is never configured in `.env`.** It is entered in the app under **Provider settings** and encrypted with the NativePHP-managed `APP_KEY`; only ciphertext is written to app-private storage. NativePHP strips `APP_KEY` from the bundled `.env` and supplies it from Android Keystore at runtime, so the saved key cannot be recovered from the APK or a copied storage file.
+`FIXIT_AI_DEFAULT_PROVIDER` only affects a fresh install with no saved selection. `FIXIT_AI_BASE_URL` is a development override for the DeepSeek-compatible endpoint, mainly to point at the local fake provider.
 
-### Enter the key
+**The API key is never configured in `.env`.** It is entered in the app and encrypted with the NativePHP-managed `APP_KEY`; only ciphertext is written to `storage/app/private/ai-settings.enc`. NativePHP strips `APP_KEY` from the bundled `.env` and supplies it from Android Keystore at runtime, so the saved key cannot be recovered from the APK or a copied storage file. Exactly one key is stored; changing provider drops the previous provider's key unless a new key is entered in the same save. ADR 0004.
+
+### Provider/model matrix
+
+| Provider | Bridge | Curated vision models |
+|---|---|---|
+| DeepSeek | Generic OpenAI-compatible | `deepseek-flash` |
+| OpenRouter | Generic OpenAI-compatible | `anthropic/claude-sonnet-4.5`, `openai/gpt-4.1`, `openai/gpt-4o`, `openai/gpt-5` |
+| Hugging Face | `symfony/ai-hugging-face-platform` | `Qwen/Qwen3-VL-30B-A3B-Instruct`, `Qwen/Qwen3.8-27B`, `google/gemma-4-31B-it` |
+| Anthropic | `symfony/ai-anthropic-platform` | `claude-sonnet-4-5`, `claude-haiku-4-5`, `claude-opus-4-1` |
+| OpenAI | `symfony/ai-open-ai-platform` | `gpt-4.1`, `gpt-4o`, `gpt-5` |
+
+OpenRouter is one provider/key: selecting `anthropic/claude-sonnet-4.5` or `openai/gpt-4.1` still uses the OpenRouter platform and OpenRouter key.
+
+### Enter a provider key
 
 1. Run the app on the emulator/device.
 2. Tap **Provider settings**.
-3. Paste the **full** DeepSeek key from `https://platform.deepseek.com/api_keys`, including the `sk-` prefix. The app rejects keys without it.
-4. Tap **Save key** → **Test connection**.
-5. Expected: `Connected: FixIt AI connectivity OK`.
+3. Select a provider and a model.
+4. Paste the provider's API key. FixIt does not enforce a prefix; the provider (or its Symfony AI bridge, for OpenAI's `sk-` format) validates the key.
+5. Tap **Save settings** → **Test connection**.
+6. Expected: `Connected: FixIt AI connectivity OK`.
 
-The key survives an app restart. **Remove saved key** deletes it.
+The selection and key survive an app restart. **Remove saved key** deletes the key but keeps the provider/model. To switch provider, select it, enter that provider's key and save; the previous provider's key is not reused.
+
+### Upgrade from the DeepSeek-only release
+
+On first read, if `storage/app/private/ai-key.enc` exists and `ai-settings.enc` does not, FixIt migrates the key to DeepSeek + `deepseek-flash` in the new encrypted file and deletes the legacy file. No re-entry is required.
 
 ### Verify against the local fake provider (no real key)
 
@@ -97,30 +116,31 @@ The key survives an app restart. **Remove saved key** deletes it.
 php -S 0.0.0.0:8099 scripts/dev/fake-openai-server.php
 ```
 
-Point the app at it before building:
+Point the DeepSeek endpoint at it before building:
 
 ```dotenv
 FIXIT_AI_BASE_URL=http://10.0.2.2:8099
-FIXIT_AI_MODEL=fixit-fake
 ```
 
-Then build, open Settings, save `sk-test-key`, and tap **Test connection**. Evidence: [evidence/2026-10-26-android-emulator-settings-connected.png](evidence/2026-10-26-android-emulator-settings-connected.png). The final settings screen with DeepSeek defaults: [evidence/2026-10-26-android-emulator-settings.png](evidence/2026-10-26-android-emulator-settings.png).
+For local Android smoke tests of the OpenRouter or Hugging Face bridges, the same fake server can be used with their development-only base-URL overrides:
 
-### What was verified on the emulator (2026-10-26)
+```dotenv
+FIXIT_AI_OPENROUTER_BASE_URL=http://10.0.2.2:8099
+FIXIT_AI_HUGGINGFACE_BASE_URL=http://10.0.2.2:8099
+```
 
-- Key saved from the Settings UI, not `.env`.
-- Saved key persisted across an app restart.
-- Test connection used the decrypted key and reached the fake OpenAI-compatible provider.
-- On-device file: `app_storage/persisted_data/storage/app/private/ai-key.enc`, mode `0600`, 228-byte AES ciphertext; **zero plaintext occurrences** of the test key.
-- Pulled APK and bundled `.env`: **zero occurrences** of the test key; `APP_KEY` is absent from the bundle.
-- Remove saved key deleted the ciphertext file.
+These overrides are non-secret and are not set in a normal build. The fake server is OpenAI-compatible; it does not emulate Anthropic's Messages API or OpenAI's Responses API.
 
-### Real DeepSeek call (2026-10-27)
+Then build, open Settings, save a test key, and tap **Test connection**.
 
-- Physical **ZTE 8050** (Android 13 / API 33): entered the full `sk-...` key in Settings and tapped **Test connection**.
-- Result: `Connected: FixIt AI connectivity OK` from `deepseek-flash` at `https://api.deepseek.com`.
-- Evidence: [evidence/2026-10-27-zte-deepseek-connected.png](evidence/2026-10-27-zte-deepseek-connected.png).
-- A key pasted without `sk-` fails with 401; the app now catches that before saving and shows a prefix-specific message.
+### Automated provider tests
+
+```bash
+php artisan test --compact tests/Unit/Services/AI
+php artisan test --compact tests/Feature/SettingsTest.php tests/Feature/DiagnosisTest.php
+```
+
+These use `MockPlatformFactory`, `MockHttpClient` and an in-memory settings store. No paid provider calls are made in CI.
 
 
 ## Camera check (T4 spike)

@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
-use App\Services\AI\ApiKeyStore;
-use App\Services\AI\EncryptedFileApiKeyStore;
+use App\Services\AI\Provider\EncryptedFileProviderSettingsStore;
+use App\Services\AI\Provider\PlatformFactory;
+use App\Services\AI\Provider\ProviderCatalog;
+use App\Services\AI\Provider\ProviderRegistry;
+use App\Services\AI\Provider\ProviderSettingsStore;
+use App\Services\AI\Provider\SymfonyAiPlatformFactory;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Date;
@@ -21,8 +25,33 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(
-            ApiKeyStore::class,
-            fn (): EncryptedFileApiKeyStore => new EncryptedFileApiKeyStore(EncryptedFileApiKeyStore::defaultPath()),
+            ProviderCatalog::class,
+            fn (): ProviderCatalog => ProviderCatalog::fromConfig((array) config('ai')),
+        );
+
+        $this->app->singleton(
+            ProviderSettingsStore::class,
+            fn ($app): EncryptedFileProviderSettingsStore => new EncryptedFileProviderSettingsStore(
+                EncryptedFileProviderSettingsStore::defaultPath(),
+                EncryptedFileProviderSettingsStore::legacyPath(),
+                $app->make(ProviderCatalog::class),
+            ),
+        );
+
+        $this->app->singleton(
+            PlatformFactory::class,
+            fn (): SymfonyAiPlatformFactory => new SymfonyAiPlatformFactory(
+                timeout: (int) config('ai.timeout', 60),
+            ),
+        );
+
+        $this->app->singleton(
+            ProviderRegistry::class,
+            fn ($app): ProviderRegistry => new ProviderRegistry(
+                $app->make(ProviderCatalog::class),
+                $app->make(ProviderSettingsStore::class),
+                $app->make(PlatformFactory::class),
+            ),
         );
     }
 

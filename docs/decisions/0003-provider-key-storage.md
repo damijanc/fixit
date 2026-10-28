@@ -1,6 +1,6 @@
 # ADR 0003 — Provider key storage without a proprietary plugin
 
-Status: Accepted. Date: 2026-10-26.
+Status: Accepted. Date: 2026-10-26. Storage shape updated by ADR 0004 (T13).
 
 ## Context
 
@@ -14,9 +14,9 @@ NativePHP itself keeps `APP_KEY` in the Android Keystore / iOS Keychain on devic
 
 Store the provider key as Laravel `Crypt` ciphertext in app-private storage:
 
-- `EncryptedFileApiKeyStore` encrypts with `APP_KEY` and writes only ciphertext to `storage/app/private/ai-key.enc` (mode `0600`).
+- `EncryptedFileApiKeyStore` encrypts with `APP_KEY` and writes only ciphertext to `storage/app/private/ai-key.enc` (mode `0600`). T13 replaces this with `EncryptedFileProviderSettingsStore` and `ai-settings.enc`, which also stores the selected provider/model; the old file is migration input only (ADR 0004).
 - `APP_KEY` is supplied at runtime by NativePHP from the Android Keystore.
-- `ApiKeyStore` is an interface; tests use an in-memory implementation, and production binds the encrypted file store.
+- `ProviderSettingsStore` is the persistence interface; tests use an in-memory implementation, and production binds the encrypted file store.
 - No key is read from `.env`, config, logs, or bundled assets.
 
 ## Consequences
@@ -24,5 +24,5 @@ Store the provider key as Laravel `Crypt` ciphertext in app-private storage:
 - Meets the requirement: the key is entered in Settings and is not recoverable from the APK or a copied storage file without the Keystore-managed `APP_KEY`.
 - Avoids a paid/authenticated NativePHP plugin and works on the current emulator build.
 - If the `APP_KEY` changes, the saved key cannot be decrypted; the user must re-enter it. This is acceptable and safer than silently falling back.
-- If the official plugin becomes available, `EncryptedFileApiKeyStore` can be swapped behind `ApiKeyStore` without changing the UI or gateway.
+- If the official plugin becomes available, `EncryptedFileProviderSettingsStore` can be swapped behind `ProviderSettingsStore` without changing the UI or gateway.
 - The ciphertext file is app-private. Whether NativePHP's persisted-data directory is excluded from Android backups has not been verified.
