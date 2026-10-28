@@ -33,8 +33,12 @@ jobs:
 
       - name: Install Android platform and build tools
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+          if command -v android >/dev/null 2>&1; then
+            yes | android sdk install platform-tools platforms/android-36 build-tools/36.0.0
+          else
+            yes | sdkmanager --licenses > /dev/null || true
+            sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+          fi
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
