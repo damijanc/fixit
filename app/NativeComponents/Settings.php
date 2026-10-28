@@ -43,25 +43,28 @@ class Settings extends NativeComponent
         $settings = $store->get();
         $catalog = app(ProviderCatalog::class);
         $provider = $catalog->get($settings->providerId);
+        $providerMissing = ! $provider instanceof ProviderDefinition;
+        $notices = [];
 
-        if (! $provider instanceof ProviderDefinition) {
+        if ($providerMissing) {
             $provider = $catalog->defaultProvider();
-            $this->status = 'The previously selected provider is no longer available. Choose a provider and model.';
+            $notices[] = 'The previously selected provider is no longer available. Choose a provider and model.';
         }
 
         $model = $provider->model($settings->modelId);
 
         if ($model === null) {
             $model = $provider->defaultModel();
-            $this->status = 'The previously selected model is no longer available. Choose a model.';
+            $notices[] = 'The previously selected model is no longer available. Choose a model.';
         }
 
         $this->provider = $provider->id;
         $this->model = $model->id;
         $this->savedProvider = $provider->id;
         $this->savedModel = $model->id;
-        $this->hasKey = $settings->hasApiKey();
+        $this->hasKey = ! $providerMissing && $settings->hasApiKey();
         $this->savedHasKey = $this->hasKey;
+        $this->status = implode(' ', $notices);
         $this->refreshLabels();
     }
 

@@ -71,7 +71,8 @@ it('rejects an incomplete key without provider-specific prefix rules', function 
     expect($store->get()->apiKey)->toBeNull();
 });
 
-it('does not reuse the DeepSeek key when switching to another provider', function () {    $store = useProviderSettings(new ProviderSettings('deepseek', 'deepseek-flash', 'sk-deepseek-only-123'));
+it('does not reuse the DeepSeek key when switching to another provider', function () {
+    $store = useProviderSettings(new ProviderSettings('deepseek', 'deepseek-flash', 'sk-deepseek-only-123'));
 
     Native::visit('/settings')
         ->select('provider-select', 'openrouter')
@@ -124,6 +125,15 @@ it('changes the model while keeping the key for the same provider', function () 
 
     expect($store->get()->modelId)->toBe('anthropic/claude-sonnet-4.5');
     expect($store->get()->apiKey)->toBe('sk-or-v1-existing');
+});
+
+it('does not claim a key for a removed provider', function () {
+    useProviderSettings(new ProviderSettings('removed-provider', 'removed-model', 'sk-old-provider-key'));
+
+    Native::visit('/settings')
+        ->assertSee('The previously selected provider is no longer available.')
+        ->assertSee('No key saved for this provider yet.')
+        ->assertDontSee('A key is saved for this provider.');
 });
 
 it('tests the connection with the saved provider and key', function () {

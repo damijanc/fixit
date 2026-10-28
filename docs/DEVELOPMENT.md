@@ -100,7 +100,7 @@ OpenRouter is one provider/key: selecting `anthropic/claude-sonnet-4.5` or `open
 1. Run the app on the emulator/device.
 2. Tap **Provider settings**.
 3. Select a provider and a model.
-4. Paste the provider's API key. Keys are not prefix-filtered; the provider validates them.
+4. Paste the provider's API key. FixIt does not enforce a prefix; the provider (or its Symfony AI bridge, for OpenAI's `sk-` format) validates the key.
 5. Tap **Save settings** → **Test connection**.
 6. Expected: `Connected: FixIt AI connectivity OK`.
 

@@ -9,7 +9,7 @@ Updated: 2026-10-28
 - Active branch: `task/t13-multi-provider-ai` (multi-provider AI, T13).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 93 tests, 572 assertions.
+- Host test suite: VERIFIED — 94 tests, 581 assertions.
 - Multi-provider AI (T13): **IMPLEMENTED + emulator fake-provider smoke** — DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI are selectable; one encrypted provider/model/key selection; Symfony AI generic/HF/Anthropic/OpenAI bridges. Host tests cover platform construction, image payloads, migration, provider errors and no key cross-use. Emulator `Pixel_9a`: Settings selection, one-key save and Test connection passed for DeepSeek, OpenRouter and Hugging Face against the local fake provider; Hugging Face vision + multi-turn follow-up passed. Real provider keys and a physical device were not available.
 - Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37) and on a physical **ZTE 8050** (Android 13 / API 33, arm64, serial `LZV50SDEDC3001352`), package `com.fixit.app`.
 - Symfony AI in embedded Android PHP: **VERIFIED with a real DeepSeek call** on the physical ZTE 8050 — `deepseek-flash` returned `FixIt AI connectivity OK`.
@@ -236,7 +236,7 @@ T13 follow-up: run real-key smoke tests with DeepSeek, OpenRouter (Claude and GP
 - Changed files: `composer.json`/`composer.lock` (Symfony AI Anthropic, Hugging Face, OpenAI bridges); `config/ai.php`; `app/Services/AI/Provider/*` (catalog, settings store, platform factory, registry); `ModelGateway`, exceptions; `AppServiceProvider`; `Settings`/`Diagnosis` components and views; `.env.example`; tests (`ModelGatewayTest`, `SettingsTest`, `DiagnosisTest`, provider unit tests, in-memory/fake test support); docs (spec 006, ADR 0004, architecture, DEVELOPMENT, JUDGE_GUIDE, README, TASKS, STATUS); evidence screenshots.
 - Implemented: curated one-provider/one-model/one-key selection for DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI; Symfony AI bridge factory; encrypted `ai-settings.enc` with legacy `ai-key.enc` migration; provider-named errors; vision capability guard; dynamic provider copy in Diagnosis; removal of the hard-coded `sk-` key rule.
 - Verified (command, environment/device, result):
-  - `php artisan test --compact` — host, PHP 8.5.12 — 93 passed, 572 assertions.
+  - `php artisan test --compact` — host, PHP 8.5.12 — 94 passed, 581 assertions.
   - GitHub Actions `PHP tests` on PR #18 — run `40670458177` — **pass** (21 s).
   - Emulator `Pixel_9a` (Android 17 / API 37), JDK 17.0.21, debug APK — Settings shows DeepSeek/`deepseek-flash`, provider/model selects and provider-specific hints; switching to OpenRouter updates the model and blocks old-key reuse; one-key save + **Test connection** returned `Connected: FixIt AI connectivity OK` for DeepSeek, OpenRouter and Hugging Face against the local fake provider.
   - Emulator Hugging Face path — photo consent/button named Hugging Face, image uploaded through the HF bridge, synthetic vision result rendered, multi-turn follow-up succeeded and persisted.

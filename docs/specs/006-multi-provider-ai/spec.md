@@ -127,7 +127,7 @@ does not branch on provider IDs and needs no change when a provider is added.
 
 ## Verification (2026-10-28)
 
-- `php artisan test --compact` — 93 passed, 572 assertions.
+- `php artisan test --compact` — 94 passed, 581 assertions.
 - Emulator `Pixel_9a` (Android 17 / API 37), debug APK built with JDK 17:
   - Settings shows DeepSeek/`deepseek-flash` by default, with provider/model
     selects, provider-specific key hint, save/test/remove actions.
