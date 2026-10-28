@@ -10,7 +10,7 @@ Updated: 2026-10-28
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
 - Host test suite: VERIFIED — 123 tests, 653 assertions (T16 branch, includes T14/T15).
-- API key field (T16): **IMPLEMENTED + emulator verified** on `fix/text-input-dropped-chars` — the key field no longer drops characters (live-sync echo race in NativePHP's text input); physical-device pass pending.
+- API key field (T16): **VERIFIED** on `fix/text-input-dropped-chars` (PR #23) — the key field no longer drops characters (live-sync echo race in NativePHP's text input); emulator fake-provider check plus real Hugging Face Test connection on the ZTE 8050.
 - Multi-provider AI (T13): **IMPLEMENTED + emulator fake-provider smoke** — DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI are selectable; one encrypted provider/model/key selection; Symfony AI generic/HF/Anthropic/OpenAI bridges. Host tests cover platform construction, image payloads, migration, provider errors and no key cross-use. Emulator `Pixel_9a`: Settings selection, one-key save and Test connection passed for DeepSeek, OpenRouter and Hugging Face against the local fake provider; Hugging Face vision + multi-turn follow-up passed. Real provider keys and a physical device were not available.
 - Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37) and on a physical **ZTE 8050** (Android 13 / API 33, arm64, serial `LZV50SDEDC3001352`), package `com.fixit.app`.
 - Symfony AI in embedded Android PHP: **VERIFIED with a real DeepSeek call** on the physical ZTE 8050 — `deepseek-flash` returned `FixIt AI connectivity OK`.
@@ -277,7 +277,7 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
 - Next executable action: on the ZTE with a real DeepSeek key, run Settings → Test connection with a wrong key (expect the 401 message), then a photo + follow-up; confirm replies still respect the safety rules.
 
 ### 2026-10-28 — T16 API key field drops characters
-- Branch/PR: `fix/text-input-dropped-chars` (PR pending).
+- Branch/PR: `fix/text-input-dropped-chars` (PR #23).
 - Changed files: `resources/views/native/settings.blade.php` (`native:model.debounce.600ms="apiKey"`); `tests/Feature/SettingsTest.php`; `docs/STATUS.md`, `docs/TASKS.md`.
 - Problem: a valid Hugging Face token (checked with `whoami-v2`) failed with 401 on the ZTE 8050. The key field looked right while typing, but characters were missing from the saved key.
 - Root cause: plain `native:model` is live sync. Each keystroke goes to PHP, and the re-rendered `value` comes back. NativePHP's Android `OutlinedTextInputRenderer` replaces the local text when the pushed value differs from the last value sent, so a late echo of an older value overwrites newer input, and the echo of the newer value is then ignored as already sent. Characters vanish from fast or `adb`-typed input and can vanish from manual typing.
@@ -288,9 +288,10 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
   - Blur sync: all characters kept in the field, but Save stored the previous key (request still sent the old key).
   - Debounce 600 ms: fast `hf_Fast1_Ab12_cd34XYZ_9qW` and character-by-character `hf_Slow2_Ab12_cd34XYZ_9qW` both arrived exactly; Test connection returned `Connected: FixIt AI connectivity OK`.
   - New host test fails against the live binding and passes with the fix; `php artisan test` — 123 passed, 653 assertions.
-- Not verified: the physical ZTE 8050 with the real Hugging Face token; tapping Save within 600 ms of the last keystroke (would save the text from before that keystroke).
+  - Physical ZTE 8050 (Android 13), debug build of this branch, real Hugging Face fine-grained token (Inference Providers permission), `Qwen/Qwen3-VL-30B-A3B-Instruct`: key pasted, Save, **Test connection → connected** (reported by the user on 2026-10-28). The same token failed with 401 on the live-sync build.
+- Not verified: a photo diagnosis through Hugging Face on the ZTE; tapping Save within 600 ms of the last keystroke (would save the text from before that keystroke).
 - Blockers/decisions: the race is in NativePHP's text input renderer and should be reported upstream. The symptoms and follow-up answer fields still use live sync and can drop characters the same way; they were not changed because a debounce there can lose text when Send is tapped right after typing.
-- Next executable action: install this build on the ZTE, paste the Hugging Face token, Save, Test connection; then decide how to protect the symptoms/follow-up fields.
+- Next executable action: run a photo diagnosis + follow-up through Hugging Face on the ZTE; then decide how to protect the symptoms/follow-up fields.
 
 
 ## Handoff entry template
