@@ -36,3 +36,19 @@ it('deletes a discarded session', function () {
 
     expect(RepairSession::query()->count())->toBe(0);
 });
+
+it('returns follow-up turns in order for the conversation thread', function () {
+    $service = new RepairSessionService;
+
+    $session = $service->startWithPhoto('/tmp/photo.jpg', 'no water flow');
+    $service->recordVisionResult($session, 'prompt', 'possible pump fault');
+    $service->recordFollowUp($session, 'the light is on', 'check the tank valve');
+    $service->recordFollowUp($session, 'the valve clicks', 'the pump may be blocked');
+
+    expect($service->followUpTurns($session))->toBe([
+        ['role' => 'user', 'text' => 'the light is on'],
+        ['role' => 'assistant', 'text' => 'check the tank valve'],
+        ['role' => 'user', 'text' => 'the valve clicks'],
+        ['role' => 'assistant', 'text' => 'the pump may be blocked'],
+    ]);
+});
