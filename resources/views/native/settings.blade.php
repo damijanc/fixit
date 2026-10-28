@@ -78,7 +78,7 @@
                 placeholder="{{ $hasKey ? 'Paste a new key to replace the saved one' : 'Paste the full key' }}"
                 secure
                 revealable
-                native:model="apiKey"
+                native:model.debounce.600ms="apiKey"
                 a11y-label="{{ $providerName }} API key"
             />
 
