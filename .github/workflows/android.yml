@@ -32,15 +32,16 @@ jobs:
         uses: android-actions/setup-android@v4
         with:
           packages: ''
+          accept-android-sdk-licenses: false
 
       - name: Install Android platform and build tools
         run: |
-          if command -v android >/dev/null 2>&1; then
-            yes | android sdk install platform-tools platforms/android-36 build-tools/36.0.0
-          else
-            yes | sdkmanager --licenses > /dev/null || true
-            sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+          if ! command -v android >/dev/null 2>&1; then
+            echo "Android CLI is not available; setup-android did not install cmdline-tools." >&2
+            exit 1
           fi
+
+          yes | android sdk install platform-tools platforms/android-36 build-tools/36.0.0
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
