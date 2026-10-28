@@ -1,5 +1,18 @@
 # Android release build
 
+## CI test build without a release
+
+`.github/workflows/android.yml` also runs for:
+
+- a pull request to `main` that changes the workflow file;
+- a manual **Run workflow** dispatch.
+
+Those runs build the same signed release APK with the stable keystore, verify it with `apksigner`, write a SHA-256, and upload it as the Actions artifact **`fixit-android-build-<run_number>`**. They do **not** create or modify a GitHub Release.
+
+Download the artifact from the workflow run, unzip it, and install `app-release.apk`. The certificate is the same stable `CN=FixIt Release` identity, so it can update an existing release install.
+
+PR builds require the same signing secrets; secrets are available for branches in this repository, not for fork PRs.
+
 ## CI release (tags only)
 
 `.github/workflows/android.yml` runs **only when a `v*` tag is pushed**. It:
