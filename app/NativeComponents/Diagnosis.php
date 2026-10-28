@@ -50,8 +50,12 @@ class Diagnosis extends NativeComponent
 
     public string $safetyNotice = '';
 
+    public string $providerName = 'your AI provider';
+
     public function mount(): void
     {
+        $this->providerName = app(ModelGateway::class)->providerName();
+
         $sessionId = $this->param('session');
 
         if (! is_string($sessionId) || $sessionId === '') {
@@ -187,13 +191,13 @@ class Diagnosis extends NativeComponent
         }
 
         if ($this->photoPath === '' || ! is_file($this->photoPath)) {
-            $this->visionStatus = 'Take a photo before asking DeepSeek to analyze it.';
+            $this->visionStatus = "Take a photo before asking {$this->providerName} to analyze it.";
 
             return;
         }
 
         $this->visionBusy = true;
-        $this->visionStatus = 'Uploading the photo to DeepSeek for analysis…';
+        $this->visionStatus = "Uploading the photo to {$this->providerName} for analysis…";
         $this->visionResult = '';
         $this->safetyNotice = '';
 
@@ -223,7 +227,7 @@ class Diagnosis extends NativeComponent
             $this->safetyNotice = $assessment->blocked
                 ? 'Safety filter blocked unsafe guidance. This needs a qualified professional.'
                 : ($assessment->escalated ? 'Safety note: mains or gas risk. Use a qualified professional.' : '');
-            $this->visionStatus = 'DeepSeek response received. Check every suggestion before acting on it.';
+            $this->visionStatus = "{$this->providerName} response received. Check every suggestion before acting on it.";
             $this->followUpAnswer = '';
             $this->followUpStatus = '';
             $this->followUpResult = '';

@@ -6,8 +6,8 @@ namespace App\Services\AI;
 
 final class MissingApiKeyException extends AiException
 {
-    public static function forProvider(): self
+    public static function forProvider(string $providerName = 'AI provider'): self
     {
-        return new self('No provider API key saved. Add your DeepSeek key in Settings.');
+        return new self("No API key saved for {$providerName}. Add your key in Settings.");
     }
 }

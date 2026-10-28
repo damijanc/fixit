@@ -4,20 +4,19 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
+use App\Services\AI\Provider\ProviderRegistry;
 use Symfony\AI\Agent\Agent;
-use Symfony\AI\Platform\Bridge\Generic\Factory;
 use Symfony\AI\Platform\Message\Content\Image;
 use Symfony\AI\Platform\Message\Content\Text;
 use Symfony\AI\Platform\Message\MessageBag;
 use Symfony\AI\Platform\Message\UserMessage;
 use Symfony\AI\Platform\PlatformInterface;
-use Symfony\Component\HttpClient\HttpClient;
 
 /**
  * Thin application boundary around Symfony AI.
  *
  * The platform is injectable so tests never touch the network. The provider
- * key always comes from on-device secure storage (T8); no key is read from
+ * and key always come from on-device secure storage; no key is read from
  * .env or bundled config.
  */
 final class ModelGateway
@@ -27,7 +26,7 @@ final class ModelGateway
     private const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
     public function __construct(
-        private readonly ApiKeyStore $keyStore,
+        private readonly ProviderRegistry $registry,
         private readonly ?PlatformInterface $platform = null,
         private readonly ?string $model = null,
     ) {}
@@ -43,13 +42,14 @@ final class ModelGateway
     /**
      * Send a local image plus a text prompt to a vision-capable model.
      *
-     * The image is base64-encoded by Symfony AI as an OpenAI-compatible
-     * image_url data URL. Nothing is uploaded until the caller invokes this.
+     * Symfony AI maps the image to the provider's multimodal image format.
+     * Nothing is uploaded until the caller invokes this.
      *
      * @throws AiException
      */
     public function askWithImage(string $prompt, string $imagePath): string
     {
+        $this->registry->assertVisionSupported();
         $this->assertUsableImage($imagePath);
 
         return $this->run(new UserMessage(
@@ -68,14 +68,24 @@ final class ModelGateway
         return $this->run($messages);
     }
 
+    /**
+     * Display name of the selected provider, safe to show in the UI.
+     */
+    public function providerName(): string
+    {
+        return $this->registry->providerName();
+    }
+
     private function run(string|UserMessage|MessageBag $input): string
     {
-        $model = $this->model ?? (string) config('ai.model');
+        $model = $this->model ?? $this->registry->modelId();
+
         if (trim($model) === '') {
             throw AiRequestFailedException::noModel();
         }
 
-        $platform = $this->platform ?? $this->platformFromConfig();
+        $providerName = $this->registry->providerName();
+        $platform = $this->platform ?? $this->registry->platform();
 
         try {
             $content = (new Agent($platform, $model))->call($input)->getContent();
@@ -83,12 +93,13 @@ final class ModelGateway
             throw $exception;
         } catch (\Throwable $exception) {
             logger()->warning('AI request failed', [
+                'provider' => $providerName,
                 'exception' => $exception::class,
                 'message' => $exception->getMessage(),
                 'code' => $exception->getCode(),
             ]);
 
-            throw AiRequestFailedException::fromProvider($exception);
+            throw AiRequestFailedException::fromProvider($exception, $providerName);
         }
 
         if (! is_string($content) || trim($content) === '') {
@@ -113,26 +124,5 @@ final class ModelGateway
         if (! is_string($mimeType) || ! in_array($mimeType, self::SUPPORTED_IMAGE_TYPES, true)) {
             throw AiRequestFailedException::imageUnsupported();
         }
-    }
-
-    private function platformFromConfig(): PlatformInterface
-    {
-        $apiKey = $this->keyStore->get();
-        if (! is_string($apiKey) || trim($apiKey) === '') {
-            throw MissingApiKeyException::forProvider();
-        }
-
-        $baseUrl = trim((string) config('ai.base_url'));
-        if ($baseUrl === '') {
-            throw AiRequestFailedException::unreachable(new \RuntimeException('Missing AI base URL.'));
-        }
-
-        $timeout = max(1, (int) config('ai.timeout', 60));
-
-        return Factory::createPlatform(
-            $baseUrl,
-            $apiKey,
-            HttpClient::create(['timeout' => $timeout]),
-        );
     }
 }

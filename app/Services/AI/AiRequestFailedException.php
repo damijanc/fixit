@@ -9,7 +9,7 @@ final class AiRequestFailedException extends AiException
     public static function unreachable(\Throwable $previous): self
     {
         return new self(
-            'The AI provider could not be reached. Check the endpoint and API key, then try again.',
+            'The AI provider could not be reached. Check the internet connection and API key, then try again.',
             previous: $previous,
         );
     }
@@ -19,27 +19,40 @@ final class AiRequestFailedException extends AiException
         return new self('The AI provider returned an empty or unsupported response.');
     }
 
-    public static function fromProvider(\Throwable $previous): self
+    public static function fromProvider(\Throwable $previous, string $providerName = 'AI provider'): self
     {
         $status = (int) $previous->getCode();
 
         $message = match (true) {
-            $status === 401 => 'DeepSeek rejected the API key (401). Check that the full key — including the sk- prefix — is active and was created at platform.deepseek.com.',
-            $status === 402 => 'DeepSeek reports insufficient balance (402). Add credit or use another key.',
-            $status === 403 => 'DeepSeek denied access to this model (403). Check the account permissions.',
-            $status === 404 => 'DeepSeek could not find the endpoint or model (404). Check the model name.',
-            $status === 429 => 'DeepSeek rate limit reached (429). Wait a moment and try again.',
-            $status >= 500 => "DeepSeek is unavailable (HTTP {$status}). Try again later.",
-            $status >= 400 => "DeepSeek rejected the request (HTTP {$status}). Check the model and key.",
+            $status === 401 => "{$providerName} rejected the API key (401). Check that the key is active and belongs to {$providerName}.",
+            $status === 402 => "{$providerName} reports insufficient balance or quota (402). Add credit or use another key.",
+            $status === 403 => "{$providerName} denied access to this model (403). Check the account permissions and model access.",
+            $status === 404 => "{$providerName} could not find the endpoint or model (404). Choose a different model in Settings.",
+            $status === 429 => "{$providerName} rate limit reached (429). Wait a moment and try again.",
+            $status >= 500 => "{$providerName} is unavailable (HTTP {$status}). Try again later.",
+            $status >= 400 => "{$providerName} rejected the request (HTTP {$status}). Check the selected model and API key.",
             default => 'The AI provider could not be reached. Check the internet connection and try again.',
         };
+
+        if (in_array($status, [400, 413, 415, 422], true)
+            && str_contains(strtolower($previous->getMessage()), 'image')) {
+            $message .= ' The selected model may not accept images. Choose a vision-capable model in Settings.';
+        }
 
         return new self($message, previous: $previous);
     }
 
     public static function noModel(): self
     {
-        return new self('No AI model is configured.');
+        return new self('No AI model is configured. Open Settings and choose a model.');
+    }
+
+    public static function invalidKey(string $providerName, \Throwable $previous): self
+    {
+        return new self(
+            "{$providerName} rejected the key format before sending. Check that you pasted the complete API key.",
+            previous: $previous,
+        );
     }
 
     public static function imageUnreadable(): self

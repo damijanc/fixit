@@ -7,7 +7,7 @@ use App\Services\AI\ModelGateway;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Native\Mobile\Testing\Native;
 use Symfony\AI\Platform\Test\MockPlatformFactory;
-use Tests\Support\InMemoryApiKeyStore;
+use Tests\Support\TestGateway;
 
 uses(RefreshDatabase::class);
 
@@ -39,10 +39,8 @@ it('explains the confirmation step when no photo is returned', function () {
 });
 
 it('requires an explicit action before uploading the photo', function () {
-    app()->instance(ModelGateway::class, new ModelGateway(
-        new InMemoryApiKeyStore('test-key'),
+    app()->instance(ModelGateway::class, TestGateway::make(
         MockPlatformFactory::createPlatform('I can see a blue test image.'),
-        'deepseek-flash',
     ));
 
     Native::visit('/diagnosis')
@@ -55,13 +53,27 @@ it('requires an explicit action before uploading the photo', function () {
         ->assertElement('image', fn (array $node): bool => ($node['ref'] ?? null) === 'captured-photo');
 });
 
+it('uses the selected provider name in the photo consent copy', function () {
+    app()->instance(ModelGateway::class, TestGateway::make(
+        MockPlatformFactory::createPlatform('I can see a blue test image.'),
+        provider: 'openrouter',
+        model: 'openai/gpt-4.1',
+        key: 'or-key-12345678',
+    ));
+
+    Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->assertSee('Sending uploads this photo and symptoms to OpenRouter')
+        ->assertSee('Send photo to OpenRouter')
+        ->tap('analyze-photo-button')
+        ->assertSee('OpenRouter response received');
+});
+
 it('keeps the photo when the vision request fails', function () {
-    app()->instance(ModelGateway::class, new ModelGateway(
-        new InMemoryApiKeyStore('test-key'),
+    app()->instance(ModelGateway::class, TestGateway::make(
         MockPlatformFactory::createPlatform(static function (): never {
             throw new RuntimeException('provider failure', 402);
         }),
-        'deepseek-flash',
     ));
 
     Native::visit('/diagnosis')
@@ -87,10 +99,8 @@ it('discards the photo from the device', function () {
 });
 
 it('restores the latest repair session after a restart', function () {
-    app()->instance(ModelGateway::class, new ModelGateway(
-        new InMemoryApiKeyStore('test-key'),
+    app()->instance(ModelGateway::class, TestGateway::make(
         MockPlatformFactory::createPlatform('The image shows a blue test object.'),
-        'deepseek-flash',
     ));
 
     Native::visit('/diagnosis')
@@ -108,8 +118,7 @@ it('restores the latest repair session after a restart', function () {
 });
 
 it('continues the diagnosis with a follow-up answer and restores it', function () {
-    app()->instance(ModelGateway::class, new ModelGateway(
-        new InMemoryApiKeyStore('test-key'),
+    app()->instance(ModelGateway::class, TestGateway::make(
         MockPlatformFactory::createPlatform(static function ($model, $input, $options): string {
             $payload = json_encode($input);
 
@@ -117,7 +126,6 @@ it('continues the diagnosis with a follow-up answer and restores it', function (
                 ? 'Follow-up result: the pump may be blocked.'
                 : 'Vision result: I see a test object.';
         }),
-        'deepseek-flash',
     ));
 
     Native::visit('/diagnosis')
@@ -140,10 +148,8 @@ it('continues the diagnosis with a follow-up answer and restores it', function (
 });
 
 it('blocks unsafe model guidance before it is displayed', function () {
-    app()->instance(ModelGateway::class, new ModelGateway(
-        new InMemoryApiKeyStore('test-key'),
+    app()->instance(ModelGateway::class, TestGateway::make(
         MockPlatformFactory::createPlatform('Open the back panel and bypass the interlock.'),
-        'deepseek-flash',
     ));
 
     Native::visit('/diagnosis')
@@ -160,8 +166,7 @@ it('blocks unsafe model guidance before it is displayed', function () {
 });
 
 it('blocks unsafe follow-up guidance too', function () {
-    app()->instance(ModelGateway::class, new ModelGateway(
-        new InMemoryApiKeyStore('test-key'),
+    app()->instance(ModelGateway::class, TestGateway::make(
         MockPlatformFactory::createPlatform(static function ($model, $input, $options): string {
             $payload = json_encode($input);
 
@@ -169,7 +174,6 @@ it('blocks unsafe follow-up guidance too', function () {
                 ? 'Open the case and touch the mains wiring.'
                 : 'Vision result: safe external check only.';
         }),
-        'deepseek-flash',
     ));
 
     Native::visit('/diagnosis')

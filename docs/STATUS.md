@@ -6,10 +6,11 @@ Updated: 2026-10-28
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `fix/ci-deprecations` (GitHub Actions maintenance).
+- Active branch: `task/t13-multi-provider-ai` (multi-provider AI, T13).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 53 tests, 347 assertions.
+- Host test suite: VERIFIED — 93 tests, 572 assertions.
+- Multi-provider AI (T13): **IMPLEMENTED + emulator fake-provider smoke** — DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI are selectable; one encrypted provider/model/key selection; Symfony AI generic/HF/Anthropic/OpenAI bridges. Host tests cover platform construction, image payloads, migration, provider errors and no key cross-use. Emulator `Pixel_9a`: Settings selection, one-key save and Test connection passed for DeepSeek, OpenRouter and Hugging Face against the local fake provider; Hugging Face vision + multi-turn follow-up passed. Real provider keys and a physical device were not available.
 - Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37) and on a physical **ZTE 8050** (Android 13 / API 33, arm64, serial `LZV50SDEDC3001352`), package `com.fixit.app`.
 - Symfony AI in embedded Android PHP: **VERIFIED with a real DeepSeek call** on the physical ZTE 8050 — `deepseek-flash` returned `FixIt AI connectivity OK`.
 - Camera capture: **VERIFIED** on emulator and physical ZTE 8050 — system camera, JPEG in app-private storage, path returned to PHP, preview rendered.
@@ -23,22 +24,24 @@ Updated: 2026-10-28
 - Release publishing: **VERIFIED on tag `v0.0.5-ci-test`** — GitHub Actions run 40659466606 built the signed APK, verified it, created a GitHub Release and attached `app-release.apk` + SHA-256. Test tag/release removed afterwards.
 - CI maintenance: Node 20 warnings removed with `actions/checkout@v5` / `actions/setup-java@v5`; `sdkmanager` replaced by Android CLI (`android sdk install`). The only remaining annotation is the `ubuntu-latest` runner image migration notice and Android CLI telemetry tip.
 - Release docs: `docs/JUDGE_GUIDE.md`, `docs/RELEASE.md`, `docs/DEMO.md`, `scripts/build-release.sh` added. Demo video not recorded.
-- Provider: **DeepSeek** (`https://api.deepseek.com`, `deepseek-flash`, vision-capable) is the configured default.
-- Secure provider key: **VERIFIED** — entered in Settings, encrypted at rest with the Keystore-managed `APP_KEY`, absent from `.env` and the APK; remove works. ADR 0003. Keys must include the `sk-` prefix.
-- Remaining: physical install of the release APK, demo video; physical pass of the new screens.
+- Provider: **multi-provider** — DeepSeek (`deepseek-flash`) is the default; OpenRouter, Hugging Face, Anthropic and OpenAI are curated. Provider/model/key live in one encrypted `ai-settings.enc`; the old DeepSeek `ai-key.enc` is migrated automatically. ADR 0004.
+- Secure provider key: **VERIFIED on emulator** — saved from Settings, encrypted at rest with the Keystore-managed `APP_KEY`, absent from `.env` and the APK; one key at a time; switching provider does not reuse the old key. The old `sk-` prefix rule was removed.
+- Remaining: real-key smoke tests (DeepSeek regression, OpenRouter Claude/GPT, Hugging Face, direct Anthropic/OpenAI) and the physical-device pass; physical install of the release APK; demo video.
 - CI: PHP tests + tag-driven Android release VERIFIED on GitHub Actions.
 
 ## Next step
-T11: install the release APK on the ZTE and record the 90-second demo. Create a real `v*` tag when ready.
+T13 follow-up: run real-key smoke tests with DeepSeek, OpenRouter (Claude and GPT) and Hugging Face, then repeat on the ZTE 8050. The emulator fake-provider pass and host suite are complete. After that, install the release APK on the ZTE and record the 90-second demo.
 
 ## Known risks
+- Real-provider smoke tests are pending; provider/model IDs were checked against live catalogs and Symfony AI 0.15 catalogs, but account access, regional availability and vision pricing can differ.
 - Tag builds fail without the stable signing secrets; the configured certificate is `CN=FixIt Release`.
 - Physical-device install of the signed release APK is not yet verified.
-- The official NativePHP SecureStorage plugin requires authenticated plugin access; ADR 0003 uses encrypted file storage with the Keystore-managed `APP_KEY` instead.
+- The official NativePHP SecureStorage plugin requires authenticated plugin access; ADR 0003/0004 use encrypted file storage with the Keystore-managed `APP_KEY` instead.
 - DeepSeek vision mapping (base64 `image_url`) is verified; vision token cost is bounded (~1024 tokens/image) but not yet metered in-app.
-- The camera plugin uses the Android system camera intent, so confirmation UI is controlled by the OS app; the new hint mitigates but does not remove the hand-off.
+- The camera plugin uses the Android system camera intent, so confirmation UI is controlled by the OS app; the hint mitigates but does not remove the hand-off.
 - NativePHP `native:build` is iOS-only; Android uses `native:run`/`native:package`.
 - Host PHP minor must match `nativephp.lock` (currently 8.5.12).
+- Custom model IDs are intentionally not offered; only curated vision models are selectable.
 
 ## Handoff log
 
@@ -228,7 +231,23 @@ T11: install the release APK on the ZTE and record the 90-second demo. Create a 
 - Blockers/decisions: tag-only releases prevent per-push APK spam; a tag fails if signing secrets are absent.
 - Next executable action: install the release APK on the ZTE and record the demo.
 
+### 2026-10-28 — T13 multi-provider AI
+- Branch/PR: `task/t13-multi-provider-ai` (PR to be opened after review).
+- Changed files: `composer.json`/`composer.lock` (Symfony AI Anthropic, Hugging Face, OpenAI bridges); `config/ai.php`; `app/Services/AI/Provider/*` (catalog, settings store, platform factory, registry); `ModelGateway`, exceptions; `AppServiceProvider`; `Settings`/`Diagnosis` components and views; `.env.example`; tests (`ModelGatewayTest`, `SettingsTest`, `DiagnosisTest`, provider unit tests, in-memory/fake test support); docs (spec 006, ADR 0004, architecture, DEVELOPMENT, JUDGE_GUIDE, README, TASKS, STATUS); evidence screenshots.
+- Implemented: curated one-provider/one-model/one-key selection for DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI; Symfony AI bridge factory; encrypted `ai-settings.enc` with legacy `ai-key.enc` migration; provider-named errors; vision capability guard; dynamic provider copy in Diagnosis; removal of the hard-coded `sk-` key rule.
+- Verified (command, environment/device, result):
+  - `php artisan test --compact` — host, PHP 8.5.12 — 93 passed, 572 assertions.
+  - Emulator `Pixel_9a` (Android 17 / API 37), JDK 17.0.21, debug APK — Settings shows DeepSeek/`deepseek-flash`, provider/model selects and provider-specific hints; switching to OpenRouter updates the model and blocks old-key reuse; one-key save + **Test connection** returned `Connected: FixIt AI connectivity OK` for DeepSeek, OpenRouter and Hugging Face against the local fake provider.
+  - Emulator Hugging Face path — photo consent/button named Hugging Face, image uploaded through the HF bridge, synthetic vision result rendered, multi-turn follow-up succeeded and persisted.
+  - Local fake-provider base URLs were removed from `.env`, app data cleared, APK rebuilt against `https://api.deepseek.com` with no saved key; APK scan found zero occurrences of the fake keys.
+  - Evidence: `docs/evidence/2026-10-28-t13-settings.png`, `...-t13-openrouter-selected.png`, `...-t13-hf-fake-followup.png`.
+- Not verified: real provider keys (DeepSeek regression, OpenRouter Claude/GPT, HF, direct Anthropic/OpenAI) and the physical ZTE 8050 pass; release build of T13; demo video.
+- Blockers/decisions: no provider keys or physical device were available in this environment. Custom model IDs are deferred; only curated vision models are selectable. OpenAI direct uses the Responses API; Anthropic uses its Messages API. ADR 0004 records the one-key invariant.
+- Next executable action: with user-supplied keys (entered on device, never committed), repeat Settings test + photo/follow-up for DeepSeek, OpenRouter Claude, OpenRouter GPT and HF on the ZTE; record limitations, then open the T13 PR.
+
+
 ## Handoff entry template
+
 ### YYYY-MM-DD — task
 - Branch/PR:
 - Changed files:

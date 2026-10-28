@@ -22,6 +22,6 @@ Follow AGENTS.md and update docs/STATUS.md and docs/TASKS.md with verified evide
 
 ## Evidence (2026-10-27)
 - Real DeepSeek call succeeded from the physical **ZTE 8050** (Android 13 / API 33): `deepseek-flash` returned `FixIt AI connectivity OK` through the app’s Settings test.
-- A pasted key missing the `sk-` prefix produced a 401; the app now rejects missing-prefix keys before saving and the 401 message names the prefix.
-- Provider failures now surface an HTTP-status-specific, safe message and log class/message/code without the key or response body.
+- A pasted key missing the `sk-` prefix produced a 401; at the time the app rejected missing-prefix keys before saving. T13 removed that provider-specific rule; keys are now format-agnostic and the provider validates them (see [spec 006](../006-multi-provider-ai/spec.md)).
+- Provider failures now surface an HTTP-status-specific, safe message and log class/message/code without the key or response body. Provider-specific naming and multi-provider selection are covered by [spec 006](../006-multi-provider-ai/spec.md).
 - Evidence: `docs/evidence/2026-10-27-zte-deepseek-connected.png`.
