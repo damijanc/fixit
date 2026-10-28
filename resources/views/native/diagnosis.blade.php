@@ -109,6 +109,19 @@
                         </text>
                     </row>
 
+                    @if ($visionError !== '')
+                        <row
+                            ref="vision-error"
+                            class="mt-4 w-full gap-3 rounded-2xl bg-theme-warning-container p-3"
+                            a11y-label="Photo not sent"
+                        >
+                            <native:icon name="error" size="20" color="#B45309" dark-color="#FCD34D" />
+                            <text class="flex-1 text-sm text-theme-on-warning-container">
+                                {{ $visionError }}
+                            </text>
+                        </row>
+                    @endif
+
                     <native:button
                         ref="analyze-photo-button"
                         variant="primary"

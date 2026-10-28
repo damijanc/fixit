@@ -29,6 +29,9 @@ class Diagnosis extends NativeComponent
 
     public string $visionResult = '';
 
+    /** Failed photo request, shown next to the send button. */
+    public string $visionError = '';
+
     public bool $visionBusy = false;
 
     public string $symptoms = '';
@@ -137,6 +140,7 @@ class Diagnosis extends NativeComponent
         $this->photoPath = $path;
         $this->cameraStatus = "Photo captured: {$mimeType}, ".basename($path);
         $this->visionStatus = '';
+        $this->visionError = '';
         $this->visionResult = '';
         $this->followUpAnswer = '';
         $this->followUpStatus = '';
@@ -176,6 +180,7 @@ class Diagnosis extends NativeComponent
 
         $this->photoPath = '';
         $this->visionStatus = '';
+        $this->visionError = '';
         $this->visionResult = '';
         $this->symptoms = '';
         $this->sessionId = '';
@@ -202,6 +207,7 @@ class Diagnosis extends NativeComponent
 
         $this->visionBusy = true;
         $this->visionStatus = "Uploading the photo to {$this->providerName} for analysis…";
+        $this->visionError = '';
         $this->visionResult = '';
         $this->safetyNotice = '';
 
@@ -239,10 +245,12 @@ class Diagnosis extends NativeComponent
             $this->turns = app(RepairSessionService::class)->followUpTurns($session);
             $this->sessionNotice = 'Repair session saved locally.';
         } catch (AiException $exception) {
-            $this->visionStatus = $exception->getMessage();
+            $this->visionStatus = '';
+            $this->visionError = $exception->getMessage();
         } catch (\Throwable $exception) {
             report($exception);
-            $this->visionStatus = 'Unexpected error while analyzing the photo.';
+            $this->visionStatus = '';
+            $this->visionError = 'Unexpected error while analyzing the photo.';
         } finally {
             $this->visionBusy = false;
         }

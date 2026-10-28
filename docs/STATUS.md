@@ -9,7 +9,8 @@ Updated: 2026-10-28
 - Active branch: `main` (T13 merged as IMPLEMENTED in PR #18; real-key and physical-device smoke tests pending).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 122 tests, 650 assertions (T15 branch, includes T14).
+- Host test suite: VERIFIED — 125 tests, 675 assertions (T17 branch, from `main`).
+- Hugging Face photo diagnosis (T17): **VERIFIED on the ZTE 8050** with a real token on `fix/vision-photo-downscale` — Hugging Face requests are routed to `deepinfra` because the router's default pick (novita) returned 503 for full-size phone photos; photo errors are shown next to the Send button.
 - Multi-provider AI (T13): **IMPLEMENTED + emulator fake-provider smoke** — DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI are selectable; one encrypted provider/model/key selection; Symfony AI generic/HF/Anthropic/OpenAI bridges. Host tests cover platform construction, image payloads, migration, provider errors and no key cross-use. Emulator `Pixel_9a`: Settings selection, one-key save and Test connection passed for DeepSeek, OpenRouter and Hugging Face against the local fake provider; Hugging Face vision + multi-turn follow-up passed. Real provider keys and a physical device were not available.
 - Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37) and on a physical **ZTE 8050** (Android 13 / API 33, arm64, serial `LZV50SDEDC3001352`), package `com.fixit.app`.
 - Symfony AI in embedded Android PHP: **VERIFIED with a real DeepSeek call** on the physical ZTE 8050 — `deepseek-flash` returned `FixIt AI connectivity OK`.
@@ -275,6 +276,22 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
 - Blockers/decisions: kept `symfony/ai-agent` (hackathon requires Symfony AI; Agent + input processor is the intended extension point). Structured output deferred until per-provider JSON-schema support is checked.
 - Next executable action: on the ZTE with a real DeepSeek key, run Settings → Test connection with a wrong key (expect the 401 message), then a photo + follow-up; confirm replies still respect the safety rules.
 
+
+### 2026-10-28 — T17 Hugging Face photo requests fail with 503
+- Branch/PR: `fix/vision-photo-downscale` (PR pending). Independent of T16 (`fix/text-input-dropped-chars`, PR #23).
+- Changed files: `config/ai.php` (`inference_provider` for Hugging Face, default `deepinfra`, override `FIXIT_AI_HUGGINGFACE_INFERENCE_PROVIDER`); `app/Services/AI/Provider/{ProviderDefinition,ProviderCatalog,SymfonyAiPlatformFactory}.php`; `app/NativeComponents/Diagnosis.php` + `resources/views/native/diagnosis.blade.php` (`visionError` box above the Send button); `tests/Unit/Services/AI/Provider/SymfonyAiPlatformFactoryTest.php`; `tests/Feature/DiagnosisTest.php`; `docs/STATUS.md`, `docs/TASKS.md`.
+- Problem: on the ZTE, "Send photo to Hugging Face" seemed to do nothing. Every request returned HTTP 503; the message only appeared in the small status line at the bottom of the scroll view.
+- Root cause: FixIt let the Hugging Face router choose the inference provider. For `Qwen/Qwen3-VL-30B-A3B-Instruct` it picks novita, which returns `internal_server_error` (503) for a full-size 3072×4032 / 1.7 MB phone JPEG. The text-only Test connection passed, so the key and model were fine.
+- Evidence (user ran a script with their token on macOS; real FixIt photo; `max_tokens` 20): full photo → auto 503, `:novita` 503, `:deepinfra` 200, `:featherless-ai` 200; same photo at 1024 px → auto 200. The HF model API lists novita, featherless-ai and deepinfra as live for all three curated HF models.
+- Rejected: shrinking the photo in PHP with GD. It worked in host tests, but on the ZTE the log showed `"gd": false` — the NativePHP Android PHP build does not load GD, so the original file was sent. The camera plugin has no size/quality option. The resize code was removed.
+- Fix: Hugging Face requests carry the `:deepinfra` provider suffix via the Symfony AI bridge's `provider` argument. Failed photo requests now show in a highlighted box above the Send button and are cleared by the next attempt.
+- Verified (command, environment/device, result):
+  - `php artisan test` — host macOS, PHP 8.5.12 — 125 passed, 675 assertions; new tests fail before the change (2 platform-factory tests; 1 Diagnosis error-box test).
+  - `vendor/bin/pint --test` on changed files — passed.
+  - Physical ZTE 8050 (Android 13), debug build of this branch, real Hugging Face token, `Qwen/Qwen3-VL-30B-A3B-Instruct`: before — four 503s in `laravel.log`; after — new 2.2 MB photo sent, diagnosis returned (reported by the user on 2026-10-28), no new error in the log.
+- Not verified: the visible error box on a device; the other two HF models through deepinfra with a photo; photo upload cost (full-size images use more tokens than needed).
+- Blockers/decisions: images are still sent at full size because the Android PHP runtime has no GD; reducing size needs a native resize (camera/plugin side) and is a separate task. The UI also feels unresponsive while a request runs (reported by the user; deferred).
+- Next executable action: merge T16 and T17, then fix the symptoms/follow-up fields that still drop characters.
 
 ## Handoff entry template
 
