@@ -2,12 +2,14 @@
 
 namespace App\Providers;
 
+use App\Services\AI\AgentFactory;
 use App\Services\AI\Provider\EncryptedFileProviderSettingsStore;
 use App\Services\AI\Provider\PlatformFactory;
 use App\Services\AI\Provider\ProviderCatalog;
 use App\Services\AI\Provider\ProviderRegistry;
 use App\Services\AI\Provider\ProviderSettingsStore;
 use App\Services\AI\Provider\SymfonyAiPlatformFactory;
+use App\Services\AI\SymfonyAgentFactory;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Date;
@@ -53,6 +55,8 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(PlatformFactory::class),
             ),
         );
+
+        $this->app->bind(AgentFactory::class, SymfonyAgentFactory::class);
     }
 
     /**

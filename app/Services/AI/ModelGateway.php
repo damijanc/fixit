@@ -5,19 +5,18 @@ declare(strict_types=1);
 namespace App\Services\AI;
 
 use App\Services\AI\Provider\ProviderRegistry;
-use Symfony\AI\Agent\Agent;
+use Psr\Log\LoggerInterface;
 use Symfony\AI\Platform\Message\Content\Image;
 use Symfony\AI\Platform\Message\Content\Text;
 use Symfony\AI\Platform\Message\MessageBag;
 use Symfony\AI\Platform\Message\UserMessage;
-use Symfony\AI\Platform\PlatformInterface;
 
 /**
- * Thin application boundary around Symfony AI.
+ * Thin application boundary around a Symfony AI agent.
  *
- * The platform is injectable so tests never touch the network. The provider
- * and key always come from on-device secure storage; no key is read from
- * .env or bundled config.
+ * Tests replace the provider through PlatformFactory, so this class always
+ * runs the same path as production. The provider and key always come from
+ * on-device secure storage; no key is read from .env or bundled config.
  */
 final class ModelGateway
 {
@@ -26,17 +25,17 @@ final class ModelGateway
     private const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
     public function __construct(
+        private readonly AgentFactory $agents,
         private readonly ProviderRegistry $registry,
-        private readonly ?PlatformInterface $platform = null,
-        private readonly ?string $model = null,
+        private readonly LoggerInterface $logger,
     ) {}
 
     /**
      * @throws AiException
      */
-    public function ask(string $prompt): string
+    public function ask(string $prompt, ?string $systemPrompt = null): string
     {
-        return $this->run($prompt);
+        return $this->run($prompt, $systemPrompt);
     }
 
     /**
@@ -47,7 +46,7 @@ final class ModelGateway
      *
      * @throws AiException
      */
-    public function askWithImage(string $prompt, string $imagePath): string
+    public function askWithImage(string $prompt, string $imagePath, ?string $systemPrompt = null): string
     {
         $this->registry->assertVisionSupported();
         $this->assertUsableImage($imagePath);
@@ -55,7 +54,7 @@ final class ModelGateway
         return $this->run(new UserMessage(
             new Text($prompt),
             Image::fromFile($imagePath),
-        ));
+        ), $systemPrompt);
     }
 
     /**
@@ -63,9 +62,9 @@ final class ModelGateway
      *
      * @throws AiException
      */
-    public function continueConversation(MessageBag $messages): string
+    public function continueConversation(MessageBag $messages, ?string $systemPrompt = null): string
     {
-        return $this->run($messages);
+        return $this->run($messages, $systemPrompt);
     }
 
     /**
@@ -76,23 +75,18 @@ final class ModelGateway
         return $this->registry->providerName();
     }
 
-    private function run(string|UserMessage|MessageBag $input): string
+    private function run(string|UserMessage|MessageBag $input, ?string $systemPrompt): string
     {
-        $model = $this->model ?? $this->registry->modelId();
-
-        if (trim($model) === '') {
-            throw AiRequestFailedException::noModel();
-        }
-
-        $providerName = $this->registry->providerName();
-        $platform = $this->platform ?? $this->registry->platform();
+        $agent = $this->agents->create($systemPrompt);
 
         try {
-            $content = (new Agent($platform, $model))->call($input)->getContent();
+            $content = $agent->call($input)->getContent();
         } catch (AiException $exception) {
             throw $exception;
         } catch (\Throwable $exception) {
-            logger()->warning('AI request failed', [
+            $providerName = $this->registry->providerName();
+
+            $this->logger->warning('AI request failed', [
                 'provider' => $providerName,
                 'exception' => $exception::class,
                 'message' => $exception->getMessage(),
