@@ -7,6 +7,8 @@ namespace App\NativeComponents;
 use App\Models\RepairSession;
 use App\Services\AI\AiException;
 use App\Services\AI\ModelGateway;
+use App\Services\Diagnosis\ConversationBuilder;
+use App\Services\Diagnosis\DiagnosisPrompts;
 use App\Services\Repair\RepairSessionService;
 use App\Services\Safety\SafetyFilter;
 use Illuminate\View\View;
@@ -16,11 +18,6 @@ use Native\Mobile\Events\Camera\PermissionDenied;
 use Native\Mobile\Events\Camera\PhotoCancelled;
 use Native\Mobile\Events\Camera\PhotoTaken;
 use Native\Mobile\Facades\Camera;
-use Symfony\AI\Platform\Message\AssistantMessage;
-use Symfony\AI\Platform\Message\Content\Text;
-use Symfony\AI\Platform\Message\MessageBag;
-use Symfony\AI\Platform\Message\SystemMessage;
-use Symfony\AI\Platform\Message\UserMessage;
 
 class Diagnosis extends NativeComponent
 {
@@ -209,8 +206,9 @@ class Diagnosis extends NativeComponent
         $this->safetyNotice = '';
 
         try {
-            $prompt = $this->visionPrompt();
-            $result = app(ModelGateway::class)->askWithImage($prompt, $this->photoPath);
+            $prompts = app(DiagnosisPrompts::class);
+            $prompt = $prompts->photoRequest($this->symptoms);
+            $result = app(ModelGateway::class)->askWithImage($prompt, $this->photoPath, $prompts->photoSystem());
 
             $session = $this->sessionId !== ''
                 ? RepairSession::query()->find($this->sessionId)
@@ -250,18 +248,6 @@ class Diagnosis extends NativeComponent
         }
     }
 
-    private function visionPrompt(): string
-    {
-        $symptoms = trim($this->symptoms);
-        $symptomContext = $symptoms === ''
-            ? 'The user has not described symptoms yet.'
-            : "The user describes these symptoms: {$symptoms}";
-
-        return <<<PROMPT
-You are FixIt, a cautious repair assistant. Look at the photo and identify the object and the most likely fault. Ask at most one diagnostic question. Suggest only low-risk, non-invasive checks. Never tell the user to open mains-powered devices, service gas equipment, bypass interlocks, or perform hazardous tests. Escalate to a qualified professional when appropriate. Keep the response under 120 words and state uncertainty. {$symptomContext}
-PROMPT;
-    }
-
     public function sendFollowUp(): void
     {
         if ($this->followUpBusy) {
@@ -291,7 +277,8 @@ PROMPT;
 
         try {
             $result = app(ModelGateway::class)->continueConversation(
-                $this->followUpConversation($session, $answer),
+                app(ConversationBuilder::class)->forFollowUp($session, $answer),
+                app(DiagnosisPrompts::class)->followUpSystem(),
             );
 
             $assessment = app(SafetyFilter::class)->assess($result);
@@ -314,48 +301,6 @@ PROMPT;
         } finally {
             $this->followUpBusy = false;
         }
-    }
-
-    private function followUpConversation(RepairSession $session, string $answer): MessageBag
-    {
-        $messages = new MessageBag(new SystemMessage($this->followUpPrompt()));
-
-        $prompt = $session->observations()
-            ->where('kind', 'photo_prompt')
-            ->latest('id')
-            ->value('content');
-
-        if (is_string($prompt) && $prompt !== '') {
-            $messages->add(new UserMessage(new Text($prompt)));
-        }
-
-        if (is_string($session->summary) && $session->summary !== '') {
-            $messages->add(new AssistantMessage(new Text($session->summary)));
-        }
-
-        $history = $session->observations()
-            ->whereIn('kind', ['follow_up_answer', 'follow_up_result'])
-            ->orderBy('id')
-            ->get();
-
-        foreach ($history as $observation) {
-            $content = new Text((string) $observation->content);
-
-            $messages->add(
-                $observation->role === 'assistant'
-                    ? new AssistantMessage($content)
-                    : new UserMessage($content),
-            );
-        }
-
-        $messages->add(new UserMessage(new Text($answer)));
-
-        return $messages;
-    }
-
-    private function followUpPrompt(): string
-    {
-        return 'You are FixIt, a cautious repair assistant. Use the earlier photo analysis, symptoms and answers. Respond with a short cautious assessment and at most one new diagnostic question. Suggest only low-risk, non-invasive checks. Never tell the user to open mains-powered devices, service gas equipment, bypass interlocks, or perform hazardous tests. Escalate to a qualified professional when appropriate. Keep the response under 100 words and state uncertainty.';
     }
 
     public function render(): View
