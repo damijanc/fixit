@@ -82,14 +82,15 @@ Verify:
 ## Verified
 
 - GitHub Actions run `40487118046` (2026-10-27): Ubuntu, PHP 8.5, JDK 17, Android SDK 36 — signed release APK built, `apksigner`-verified and uploaded as `fixit-android-release-apk` (~8.5 min).
-- GitHub Actions run `40652416378` (2026-10-28): stable repository signing secrets used; certificate `CN=FixIt Release, OU=Mobile, O=FixIt, L=Berlin, ST=Berlin, C=DE`. One retry was needed for a transient NativePHP PHP-binary download.
+- GitHub Actions run `40659466606` (2026-10-28): tag-triggered release `v0.0.5-ci-test` built and verified the APK, then created a GitHub Release with `app-release.apk` and its SHA-256. Test tag/release removed afterwards.
 - A local signed release APK built on macOS with JDK 17 / SDK 36 and installed/launched on the `Pixel_9a` emulator (2026-10-27).
 - Physical-device install of the release build is still pending.
 
 ## CI warnings
 
-- Node 20 deprecations were removed by bumping `actions/checkout@v5`, `actions/setup-java@v5` and `actions/upload-artifact@v5`.
-- `sdkmanager` is deprecated in favour of Android CLI (`android sdk install ...`). The workflow still uses `sdkmanager`; migrating requires installing the separate Android CLI binary and is tracked as follow-up work.
+- Node 20 deprecations were removed by bumping `actions/checkout@v5` and `actions/setup-java@v5`.
+- `sdkmanager` was replaced with Android CLI (`android sdk install ...`); the deprecated warning is gone. Only the `ubuntu-latest` runner-image notice remains.
+- Android CLI prints a one-time telemetry notice; it is informational, not a build warning.
 
 ## Versioning
 
