@@ -1,16 +1,22 @@
-name: Android release
+name: Android build
 
 on:
   push:
     tags:
       - 'v*'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   android-release:
-    name: Signed release APK
+    name: Android APK
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -51,7 +57,11 @@ jobs:
           cp .env.example .env
           php artisan key:generate
 
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="0.0.6-t13-pr${GITHUB_RUN_NUMBER}"
+          fi
           sed -i "s/^NATIVEPHP_APP_VERSION=.*/NATIVEPHP_APP_VERSION=${VERSION}/" .env
           sed -i "s/^NATIVEPHP_APP_VERSION_CODE=.*/NATIVEPHP_APP_VERSION_CODE=${{ github.run_number }}/" .env
 
@@ -111,13 +121,27 @@ jobs:
         run: |
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs build/android/app-release.apk
 
+      - name: Create APK checksum
+        run: |
+          sha256sum build/android/app-release.apk > build/android/app-release.apk.sha256
+
+      - name: Upload installable APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixit-android-build-${{ github.run_number }}
+          path: |
+            build/android/app-release.apk
+            build/android/app-release.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           APK="build/android/app-release.apk"
-          sha256sum "$APK" > "$APK.sha256"
 
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" "$APK" "$APK.sha256" --clobber
