@@ -18,6 +18,7 @@ Follow AGENTS.md and update docs/STATUS.md and docs/TASKS.md with verified evide
 - `.github/workflows/android.yml` installs PHP 8.5, JDK 17 and Android SDK 36, builds a signed release APK, verifies it with `apksigner`, and uploads `fixit-android-release-apk`. It uses repository secrets when present, otherwise an ephemeral CI keystore.
 - GitHub Actions run `40487118046` succeeded (~8.5 min) and uploaded the signed APK; PHP tests also passed.
 - GitHub Actions run `40652416378` succeeded with the stable release keystore; certificate `CN=FixIt Release, OU=Mobile, O=FixIt, L=Berlin, ST=Berlin, C=DE`.
+- Workflow switched to **tag-only** `v*` builds that create/update a GitHub Release with the APK and SHA-256. First tag run pending.
 - Local release build verified: 76.77 MB signed APK, certificate checked, installed and launched on the `Pixel_9a` emulator.
 - `docs/JUDGE_GUIDE.md`, `docs/RELEASE.md`, `docs/DEMO.md` and `scripts/build-release.sh` added.
-- Remaining: physical-device release install, demo recording, `sdkmanager`→Android CLI migration.
+- Remaining: tag-run verification, physical-device release install, demo recording, `sdkmanager`→Android CLI migration.

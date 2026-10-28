@@ -1,9 +1,12 @@
-name: Android build
+name: Android release
 
 on:
   push:
-  pull_request:
-  workflow_dispatch:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   android-release:
@@ -40,6 +43,11 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/^NATIVEPHP_APP_VERSION=.*/NATIVEPHP_APP_VERSION=${VERSION}/" .env
+          sed -i "s/^NATIVEPHP_APP_VERSION_CODE=.*/NATIVEPHP_APP_VERSION_CODE=${{ github.run_number }}/" .env
+
           php artisan native:install android --no-interaction
 
       - name: Prepare signing key
@@ -49,33 +57,19 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          KEYSTORE="$RUNNER_TEMP/fixit-release.jks"
-
-          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
-            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
-            ALIAS="$ANDROID_KEY_ALIAS"
-            STORE_PASS="$ANDROID_KEYSTORE_PASSWORD"
-            KEY_PASS="$ANDROID_KEY_PASSWORD"
-          else
-            ALIAS="fixit-ci"
-            STORE_PASS="fixit-ci-only"
-            KEY_PASS="fixit-ci-only"
-            keytool -genkeypair -v \
-              -keystore "$KEYSTORE" \
-              -alias "$ALIAS" \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 3650 \
-              -storepass "$STORE_PASS" \
-              -keypass "$KEY_PASS" \
-              -dname "CN=FixIt CI, OU=Dev, O=FixIt, L=CI, S=CI, C=NL"
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "Missing ANDROID_KEYSTORE_BASE64. Tag releases require the stable signing secrets." >&2
+            exit 1
           fi
+
+          KEYSTORE="$RUNNER_TEMP/fixit-release.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
 
           {
             echo "KEYSTORE_PATH=$KEYSTORE"
-            echo "KEY_ALIAS=$ALIAS"
-            echo "STORE_PASSWORD=$STORE_PASS"
-            echo "KEY_PASSWORD=$KEY_PASS"
+            echo "KEY_ALIAS=$ANDROID_KEY_ALIAS"
+            echo "STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+            echo "KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
           } >> "$GITHUB_ENV"
 
       - name: Validate signing key
@@ -110,9 +104,19 @@ jobs:
         run: |
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs build/android/app-release.apk
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v5
-        with:
-          name: fixit-android-release-apk
-          path: build/android/*.apk
-          if-no-files-found: error
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          APK="build/android/app-release.apk"
+          sha256sum "$APK" > "$APK.sha256"
+
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$APK" "$APK.sha256" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$APK" "$APK.sha256" \
+              --title "FixIt $VERSION" \
+              --notes "Signed FixIt release $VERSION. See docs/JUDGE_GUIDE.md. Never share API keys." \
+              --latest
+          fi

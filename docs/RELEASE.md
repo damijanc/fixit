@@ -1,22 +1,39 @@
 # Android release build
 
-## CI
+## CI release (tags only)
 
-`.github/workflows/android.yml` builds a signed release APK on every push/PR and on demand.
+`.github/workflows/android.yml` runs **only when a `v*` tag is pushed**. It:
 
-- If these repository secrets exist, the CI build uses them:
-  - `ANDROID_KEYSTORE_BASE64` — base64 of the `.jks` file
-  - `ANDROID_KEYSTORE_PASSWORD`
-  - `ANDROID_KEY_ALIAS`
-  - `ANDROID_KEY_PASSWORD`
-- If they are absent, CI generates a throwaway keystore so the build still verifies. That APK is signed but its identity changes every run; use the real secrets for a distributable release.
-- The signed APK is uploaded as the `fixit-android-release-apk` artifact.
-- The workflow verifies the APK with `apksigner` before upload.
+- builds the signed release APK;
+- verifies it with `apksigner`;
+- creates or updates the GitHub Release for that tag and attaches:
+  - `app-release.apk`
+  - `app-release.apk.sha256`
+
+Secrets required on tag builds:
+
+- `ANDROID_KEYSTORE_BASE64` — base64 of the `.jks` file
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
+A tag build **fails** if the keystore secret is missing, so a release is never signed with an accidental throwaway key.
+
+Create a release:
+
+```bash
+git checkout main
+git pull
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The APK appears under **Releases** on GitHub, not just as a workflow artifact.
 
 Create the secret value without committing the keystore:
 
 ```bash
-base64 < fixit-release.jks | pbcopy   # macOS: paste into the GitHub secret
+base64 -i fixit-release.jks | tr -d '\n' | pbcopy   # macOS: paste into the GitHub secret
 ```
 
 Never commit the keystore or passwords.

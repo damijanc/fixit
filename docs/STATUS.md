@@ -20,15 +20,16 @@ Updated: 2026-10-28
 - Screens: **VERIFIED on emulator** — Home landing, Diagnosis, Result and History with navigation and saved-session lists. Evidence: `docs/evidence/2026-10-27-emulator-home-screens.png`, `...-history.png`, `...-result-screen.png`.
 - Android release build: **local signed release APK VERIFIED** — 76.77 MB, `apksigner` certificate checked, installed and launched on the `Pixel_9a` emulator. Built with an ephemeral local keystore.
 - Android CI: **VERIFIED with stable signing** — run 40652416378 (main, 2026-10-28) built and uploaded a signed release APK after a transient NativePHP binary-download retry. `apksigner` shows `CN=FixIt Release, OU=Mobile, O=FixIt, L=Berlin, ST=Berlin, C=DE`.
-- CI maintenance: Node 20 warnings removed by bumping `actions/checkout@v5`, `actions/setup-java@v5`, `actions/upload-artifact@v5`. The `sdkmanager` deprecation warning remains; Android CLI replacement is a follow-up.
+- Release publishing: workflow switched to **tag-only** (`v*`); it builds the signed APK and creates/updates a GitHub Release with the APK + SHA-256. First tag run pending.
+- CI maintenance: Node 20 warnings removed by bumping `actions/checkout@v5` and `actions/setup-java@v5`; the artifact upload was replaced by GitHub Release publishing. The `sdkmanager` deprecation warning remains; Android CLI replacement is a follow-up.
 - Release docs: `docs/JUDGE_GUIDE.md`, `docs/RELEASE.md`, `docs/DEMO.md`, `scripts/build-release.sh` added. Demo video not recorded.
 - Provider: **DeepSeek** (`https://api.deepseek.com`, `deepseek-flash`, vision-capable) is the configured default.
 - Secure provider key: **VERIFIED** — entered in Settings, encrypted at rest with the Keystore-managed `APP_KEY`, absent from `.env` and the APK; remove works. ADR 0003. Keys must include the `sk-` prefix.
-- Remaining: physical install of the release APK, demo video, sdkmanager→Android CLI migration; physical pass of the new screens.
+- Remaining: tag-release verification, physical install of the release APK, demo video, sdkmanager→Android CLI migration; physical pass of the new screens.
 - CI: PHP tests + Android release build VERIFIED on GitHub Actions.
 
 ## Next step
-T11: install the release APK on the ZTE and record the 90-second demo. Then replace the deprecated `sdkmanager` CI step with Android CLI.
+T11: push a `v*` tag to verify GitHub Release publishing, install the APK on the ZTE, record the 90-second demo. Then replace `sdkmanager` with Android CLI.
 
 ## Known risks
 - CI release artifacts use an ephemeral key unless `ANDROID_KEYSTORE_BASE64` and password/alias secrets are configured.
@@ -215,6 +216,15 @@ T11: install the release APK on the ZTE and record the 90-second demo. Then repl
 - Not verified: physical install of the release APK; demo video; Android CLI migration.
 - Blockers/decisions: `sdkmanager` still works but is deprecated; Android CLI requires a separate download/installation and is deferred to its own change.
 - Next executable action: install the release APK on the ZTE and record the demo; then migrate the CI SDK install to Android CLI.
+
+### 2026-10-28 — Tag-only GitHub Releases
+- Branch/PR: `fix/ci-deprecations` (PR #17).
+- Changed files: `.github/workflows/android.yml`, docs/RELEASE/JUDGE_GUIDE/STATUS/TASKS/spec 005.
+- Implemented: Android workflow now runs only on `v*` tags; builds the signed APK and creates/updates a GitHub Release with `app-release.apk` and `app-release.apk.sha256`; fails if the keystore secret is missing; sets app version/version-code from the tag/run number.
+- Verified: workflow YAML/action versions; previous stable-signing run 40652416378.
+- Not verified: first tag-triggered release run; physical install; demo.
+- Blockers/decisions: tag-only releases prevent per-push APK spam. `sdkmanager` remains deprecated but functional.
+- Next executable action: merge, push a `v*` tag, confirm the GitHub Release, then install the APK on the ZTE and record the demo.
 
 ## Handoff entry template
 ### YYYY-MM-DD — task

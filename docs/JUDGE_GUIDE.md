@@ -6,7 +6,7 @@ FixIt is an Android-only, AI-guided repair assistant built with NativePHP, Larav
 
 - An **Android 13+** phone (arm64), or the provided emulator.
 - The signed **FixIt release APK**:
-  - download `fixit-android-release-apk` from the latest GitHub Actions run, or
+  - download `app-release.apk` from the latest **GitHub Release**, or
   - build it with [RELEASE.md](RELEASE.md).
 - A **DeepSeek API key** from <https://platform.deepseek.com/api_keys>. The key is entered in the app; it is **not** bundled in the APK.
 - Internet access for the DeepSeek calls.
