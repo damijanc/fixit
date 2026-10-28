@@ -1,22 +1,39 @@
 # Android release build
 
-## CI
+## CI release (tags only)
 
-`.github/workflows/android.yml` builds a signed release APK on every push/PR and on demand.
+`.github/workflows/android.yml` runs **only when a `v*` tag is pushed**. It:
 
-- If these repository secrets exist, the CI build uses them:
-  - `ANDROID_KEYSTORE_BASE64` — base64 of the `.jks` file
-  - `ANDROID_KEYSTORE_PASSWORD`
-  - `ANDROID_KEY_ALIAS`
-  - `ANDROID_KEY_PASSWORD`
-- If they are absent, CI generates a throwaway keystore so the build still verifies. That APK is signed but its identity changes every run; use the real secrets for a distributable release.
-- The signed APK is uploaded as the `fixit-android-release-apk` artifact.
-- The workflow verifies the APK with `apksigner` before upload.
+- builds the signed release APK;
+- verifies it with `apksigner`;
+- creates or updates the GitHub Release for that tag and attaches:
+  - `app-release.apk`
+  - `app-release.apk.sha256`
+
+Secrets required on tag builds:
+
+- `ANDROID_KEYSTORE_BASE64` — base64 of the `.jks` file
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
+A tag build **fails** if the keystore secret is missing, so a release is never signed with an accidental throwaway key.
+
+Create a release:
+
+```bash
+git checkout main
+git pull
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The APK appears under **Releases** on GitHub, not just as a workflow artifact.
 
 Create the secret value without committing the keystore:
 
 ```bash
-base64 < fixit-release.jks | pbcopy   # macOS: paste into the GitHub secret
+base64 -i fixit-release.jks | tr -d '\n' | pbcopy   # macOS: paste into the GitHub secret
 ```
 
 Never commit the keystore or passwords.
@@ -65,8 +82,15 @@ Verify:
 ## Verified
 
 - GitHub Actions run `40487118046` (2026-10-27): Ubuntu, PHP 8.5, JDK 17, Android SDK 36 — signed release APK built, `apksigner`-verified and uploaded as `fixit-android-release-apk` (~8.5 min).
+- GitHub Actions run `40659466606` (2026-10-28): tag-triggered release `v0.0.5-ci-test` built and verified the APK, then created a GitHub Release with `app-release.apk` and its SHA-256. Test tag/release removed afterwards.
 - A local signed release APK built on macOS with JDK 17 / SDK 36 and installed/launched on the `Pixel_9a` emulator (2026-10-27).
 - Physical-device install of the release build is still pending.
+
+## CI warnings
+
+- Node 20 deprecations were removed by bumping `actions/checkout@v5` and `actions/setup-java@v5`.
+- `sdkmanager` was replaced with Android CLI (`android sdk install ...`); the deprecated warning is gone. Only the `ubuntu-latest` runner-image notice remains.
+- Android CLI prints a one-time telemetry notice; it is informational, not a build warning.
 
 ## Versioning
 

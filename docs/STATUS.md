@@ -1,12 +1,12 @@
 # FixIt status
 
-Updated: 2026-10-27
+Updated: 2026-10-28
 
 ## Current state
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `task/t10-android-ci` (Android CI + release packaging).
+- Active branch: `fix/ci-deprecations` (GitHub Actions maintenance).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
 - Host test suite: VERIFIED — 53 tests, 347 assertions.
@@ -19,18 +19,20 @@ Updated: 2026-10-27
 - Deterministic safety filtering: **VERIFIED** by unit + UI tests — hazardous instructions are blocked before display; mains/gas mentions escalate; blocked raw text is not stored.
 - Screens: **VERIFIED on emulator** — Home landing, Diagnosis, Result and History with navigation and saved-session lists. Evidence: `docs/evidence/2026-10-27-emulator-home-screens.png`, `...-history.png`, `...-result-screen.png`.
 - Android release build: **local signed release APK VERIFIED** — 76.77 MB, `apksigner` certificate checked, installed and launched on the `Pixel_9a` emulator. Built with an ephemeral local keystore.
-- Android CI: **VERIFIED** — GitHub Actions run 40487118046 built, `apksigner`-verified and uploaded a signed release APK on Ubuntu with JDK 17 / Android SDK 36 (2026-10-27). Uses repository secrets when available, otherwise an ephemeral CI key.
+- Android CI: **VERIFIED with stable signing** — run 40652416378 (main, 2026-10-28) built and uploaded a signed release APK after a transient NativePHP binary-download retry. `apksigner` shows `CN=FixIt Release, OU=Mobile, O=FixIt, L=Berlin, ST=Berlin, C=DE`.
+- Release publishing: **VERIFIED on tag `v0.0.5-ci-test`** — GitHub Actions run 40659466606 built the signed APK, verified it, created a GitHub Release and attached `app-release.apk` + SHA-256. Test tag/release removed afterwards.
+- CI maintenance: Node 20 warnings removed with `actions/checkout@v5` / `actions/setup-java@v5`; `sdkmanager` replaced by Android CLI (`android sdk install`). The only remaining annotation is the `ubuntu-latest` runner image migration notice and Android CLI telemetry tip.
 - Release docs: `docs/JUDGE_GUIDE.md`, `docs/RELEASE.md`, `docs/DEMO.md`, `scripts/build-release.sh` added. Demo video not recorded.
 - Provider: **DeepSeek** (`https://api.deepseek.com`, `deepseek-flash`, vision-capable) is the configured default.
 - Secure provider key: **VERIFIED** — entered in Settings, encrypted at rest with the Keystore-managed `APP_KEY`, absent from `.env` and the APK; remove works. ADR 0003. Keys must include the `sk-` prefix.
-- Remaining: stable release-signing secrets, physical install of the release APK, demo video; physical pass of the new screens.
-- CI: PHP tests + Android release build VERIFIED on GitHub Actions.
+- Remaining: physical install of the release APK, demo video; physical pass of the new screens.
+- CI: PHP tests + tag-driven Android release VERIFIED on GitHub Actions.
 
 ## Next step
-T11: configure stable signing secrets, install the release APK on the ZTE, and record the 90-second demo. Physical pass of the Home/Diagnosis/Result/History screens remains desirable.
+T11: install the release APK on the ZTE and record the 90-second demo. Create a real `v*` tag when ready.
 
 ## Known risks
-- CI release artifacts use an ephemeral key unless `ANDROID_KEYSTORE_BASE64` and password/alias secrets are configured.
+- Tag builds fail without the stable signing secrets; the configured certificate is `CN=FixIt Release`.
 - Physical-device install of the signed release APK is not yet verified.
 - The official NativePHP SecureStorage plugin requires authenticated plugin access; ADR 0003 uses encrypted file storage with the Keystore-managed `APP_KEY` instead.
 - DeepSeek vision mapping (base64 `image_url`) is verified; vision token cost is bounded (~1024 tokens/image) but not yet metered in-app.
@@ -203,6 +205,28 @@ T11: configure stable signing secrets, install the release APK on the ZTE, and r
 - Not verified: stable signing identity (still ephemeral without secrets); physical install of the release APK; demo video.
 - Blockers/decisions: `android-actions/setup-android@v3` fails on the removed `tools` package; v4 is required.
 - Next executable action: configure signing secrets, install the release APK on the ZTE, record the demo.
+
+### 2026-10-28 — Stable CI signing + warning cleanup
+- Branch/PR: `fix/ci-deprecations` (PR #17).
+- Changed files: `.github/workflows/android.yml`, `.github/workflows/quality.yml`, STATUS/TASKS/RELEASE.
+- Implemented: bumped Node-based actions to v5; retained the stable keystore validation step. Documented the remaining sdkmanager deprecation.
+- Verified (command, environment/device, result):
+  - GitHub Actions run `40652416378` — main — **success** after retrying the transient NativePHP PHP-binary download. Signed APK uploaded; `apksigner` certificate is `CN=FixIt Release, OU=Mobile, O=FixIt, L=Berlin, ST=Berlin, C=DE`.
+  - Keystore validation step passed with the repository secrets.
+- Not verified: physical install of the release APK; demo video; Android CLI migration.
+- Blockers/decisions: `sdkmanager` still works but is deprecated; Android CLI requires a separate download/installation and is deferred to its own change.
+- Next executable action: install the release APK on the ZTE and record the demo; then migrate the CI SDK install to Android CLI.
+
+### 2026-10-28 — Tag-only GitHub Releases
+- Branch/PR: `fix/ci-deprecations` (PR #17).
+- Changed files: `.github/workflows/android.yml`, docs/RELEASE/JUDGE_GUIDE/STATUS/TASKS/spec 005.
+- Implemented: Android workflow now runs only on `v*` tags; builds the signed APK and creates/updates a GitHub Release with `app-release.apk` and `app-release.apk.sha256`; fails if the keystore secret is missing; sets app version/version-code from the tag/run number. CI SDK installation now uses Android CLI instead of deprecated `sdkmanager`.
+- Verified (command, environment/device, result):
+  - Tag `v0.0.5-ci-test` → run `40659466606` — success; GitHub Release contained `app-release.apk` (80.5 MB) and SHA-256. Test tag/release removed.
+  - No `sdkmanager`/Node 20 deprecation warnings; stable keystore certificate used.
+- Not verified: physical install of the release APK; demo video.
+- Blockers/decisions: tag-only releases prevent per-push APK spam; a tag fails if signing secrets are absent.
+- Next executable action: install the release APK on the ZTE and record the demo.
 
 ## Handoff entry template
 ### YYYY-MM-DD — task

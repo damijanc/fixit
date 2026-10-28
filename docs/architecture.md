@@ -33,4 +33,4 @@ A deterministic `SafetyFilter` scans model output before display, blocks hazardo
 - Deterministic safety filter — **verified by tests**: hazardous mains/gas/interlock instructions blocked before display; mains/gas mentions escalated (2026-10-27)
 - Home/Diagnosis/Result/History screens — **verified on emulator**: navigation, latest-session resume and saved result/history work (2026-10-27)
 - Secure local provider key storage — **verified on emulator** (ADR 0003): encrypted at rest with the NativePHP Keystore-managed `APP_KEY`, entered in app Settings
-- Signed APK build — **VERIFIED locally and in GitHub Actions**: signed release APK built with JDK 17/SDK 36, `apksigner`-verified, installed on emulator; CI run 40487118046 uploaded the artifact (2026-10-27)
+- Signed APK build — **VERIFIED locally and in GitHub Actions**: tag-only release workflow builds with JDK 17/SDK 36 and uploads a signed APK to the GitHub Release; run 40659466606 used the stable repository keystore (cert CN=FixIt Release) (2026-10-28)

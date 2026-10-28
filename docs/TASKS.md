@@ -14,7 +14,7 @@ Use PLANNED, IN_PROGRESS, IMPLEMENTED, VERIFIED or BLOCKED. Only VERIFIED means 
 | T8 | P1 | VERIFIED | Secure user API key settings; no embedded secrets — app Settings entry, encrypted storage, restart persistence and APK-absence VERIFIED on emulator (ADR 0003) |
 | T9 | P1 | VERIFIED | Home, diagnosis, result and history screens — four screens + navigation VERIFIED on emulator 2026-10-27 |
 | T10 | P1 | VERIFIED | Automated tests and CI Android build — PHP tests + signed Android release workflow VERIFIED (run 40487118046, 2026-10-27) |
-| T11 | P1 | IN_PROGRESS | Signed release APK, judge setup guide, demo video — local + CI signed APK and judge/release guides VERIFIED; stable signing secrets, physical release install and demo video pending |
+| T11 | P1 | IN_PROGRESS | Signed release APK, judge setup guide, demo video — stable signing + tag GitHub Release publishing VERIFIED (run 40659466606); physical install + demo video pending |
 | T12 | P2 | PLANNED | Before/after photo comparison |
 
 ## Rules
