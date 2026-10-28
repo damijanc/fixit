@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\NativeComponents;
 
 use App\Models\RepairSession;
+use App\Support\DisplayText;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
@@ -12,6 +13,8 @@ use Native\Mobile\Edge\NativeComponent;
 class Home extends NativeComponent
 {
     public ?string $latestSessionId = null;
+
+    public string $latestTitle = '';
 
     public string $latestSummary = '';
 
@@ -32,8 +35,9 @@ class Home extends NativeComponent
         }
 
         $this->latestSessionId = $latest->id;
-        $this->latestStatus = $latest->status;
-        $this->latestSummary = Str::limit((string) ($latest->summary ?? ''), 160);
+        $this->latestTitle = DisplayText::repairTitle($latest->symptoms, $latest->summary);
+        $this->latestStatus = DisplayText::status($latest->status);
+        $this->latestSummary = Str::limit(DisplayText::plain((string) ($latest->summary ?? '')), 160);
         $this->latestUpdated = $latest->updated_at?->diffForHumans() ?? '';
     }
 
