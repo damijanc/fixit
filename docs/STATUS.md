@@ -232,7 +232,7 @@ T13 follow-up: run real-key smoke tests with DeepSeek, OpenRouter (Claude and GP
 - Next executable action: install the release APK on the ZTE and record the demo.
 
 ### 2026-10-28 — T13 multi-provider AI
-- Branch/PR: `task/t13-multi-provider-ai` (PR to be opened after review).
+- Branch/PR: `task/t13-multi-provider-ai` (PR #18).
 - Changed files: `composer.json`/`composer.lock` (Symfony AI Anthropic, Hugging Face, OpenAI bridges); `config/ai.php`; `app/Services/AI/Provider/*` (catalog, settings store, platform factory, registry); `ModelGateway`, exceptions; `AppServiceProvider`; `Settings`/`Diagnosis` components and views; `.env.example`; tests (`ModelGatewayTest`, `SettingsTest`, `DiagnosisTest`, provider unit tests, in-memory/fake test support); docs (spec 006, ADR 0004, architecture, DEVELOPMENT, JUDGE_GUIDE, README, TASKS, STATUS); evidence screenshots.
 - Implemented: curated one-provider/one-model/one-key selection for DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI; Symfony AI bridge factory; encrypted `ai-settings.enc` with legacy `ai-key.enc` migration; provider-named errors; vision capability guard; dynamic provider copy in Diagnosis; removal of the hard-coded `sk-` key rule.
 - Verified (command, environment/device, result):

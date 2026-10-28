@@ -16,7 +16,7 @@ Use PLANNED, IN_PROGRESS, IMPLEMENTED, VERIFIED or BLOCKED. Only VERIFIED means 
 | T10 | P1 | VERIFIED | Automated tests and CI Android build — PHP tests + signed Android release workflow VERIFIED (run 40487118046, 2026-10-27) |
 | T11 | P1 | IN_PROGRESS | Signed release APK, judge setup guide, demo video — stable signing + tag GitHub Release publishing VERIFIED (run 40659466606); physical install + demo video pending |
 | T12 | P2 | PLANNED | Before/after photo comparison |
-| T13 | P0 | IMPLEMENTED | Multi-provider AI: DeepSeek, OpenRouter, Hugging Face (P0), Anthropic/OpenAI (P1); one encrypted provider/model/key selection in Settings; Symfony AI bridges; host tests pass; physical-device smoke tests pending |
+| T13 | P0 | IMPLEMENTED | Multi-provider AI: DeepSeek, OpenRouter, Hugging Face (P0), Anthropic/OpenAI (P1); one encrypted provider/model/key selection in Settings; Symfony AI bridges; host tests pass; physical-device smoke tests pending (PR #18) |
 
 ## Rules
 Do P0 compatibility work before feature development. Each task must be backed by a PR, acceptance evidence and STATUS handoff. No additional architecture without a concrete need.
