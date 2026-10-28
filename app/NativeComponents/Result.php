@@ -27,6 +27,9 @@ class Result extends NativeComponent
 
     public string $message = '';
 
+    /** @var list<array{role: string, text: string}> */
+    public array $turns = [];
+
     public function mount(): void
     {
         $sessionId = $this->param('session');
@@ -50,6 +53,7 @@ class Result extends NativeComponent
         $this->symptoms = (string) ($session->symptoms ?? '');
         $this->status = $session->status;
         $this->followUp = (string) (app(RepairSessionService::class)->latestFollowUp($session) ?? '');
+        $this->turns = app(RepairSessionService::class)->followUpTurns($session);
 
         if (is_string($session->photo_path) && is_file($session->photo_path)) {
             $this->photoPath = $session->photo_path;

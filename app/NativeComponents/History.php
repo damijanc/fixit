@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\NativeComponents;
 
 use App\Models\RepairSession;
+use App\Support\DisplayText;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
 
 class History extends NativeComponent
 {
-    /** @var list<array{id: string, label: string, summary: string}> */
+    /** @var list<array{id: string, title: string, label: string, summary: string, escalated: bool}> */
     public array $sessions = [];
 
     public function mount(): void
@@ -22,8 +23,10 @@ class History extends NativeComponent
             ->get()
             ->map(fn (RepairSession $session): array => [
                 'id' => $session->id,
-                'label' => ucfirst(str_replace('_', ' ', $session->status)).' · '.($session->updated_at?->diffForHumans() ?? ''),
-                'summary' => Str::limit((string) ($session->summary ?? 'No result yet'), 120),
+                'title' => DisplayText::repairTitle($session->symptoms, $session->summary),
+                'label' => DisplayText::status($session->status).' · '.($session->updated_at?->diffForHumans() ?? ''),
+                'summary' => Str::limit(DisplayText::plain((string) ($session->summary ?? 'No result yet')), 120),
+                'escalated' => $session->status === 'escalated',
             ])
             ->values()
             ->all();

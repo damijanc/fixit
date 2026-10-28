@@ -54,6 +54,25 @@ final class RepairSessionService
         return is_string($result) && $result !== '' ? $result : null;
     }
 
+    /**
+     * Follow-up turns in order, for rendering the conversation thread.
+     *
+     * @return list<array{role: string, text: string}>
+     */
+    public function followUpTurns(RepairSession $session): array
+    {
+        return $session->observations()
+            ->whereIn('kind', ['follow_up_answer', 'follow_up_result'])
+            ->orderBy('id')
+            ->get(['role', 'content'])
+            ->map(fn ($observation): array => [
+                'role' => $observation->role === 'assistant' ? 'assistant' : 'user',
+                'text' => (string) $observation->content,
+            ])
+            ->values()
+            ->all();
+    }
+
     public function discard(RepairSession $session): void
     {
         $session->delete();

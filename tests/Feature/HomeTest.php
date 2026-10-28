@@ -14,7 +14,7 @@ it('renders the home landing screen', function () {
         ->assertSee('Start a new diagnosis')
         ->assertSee('History (0)')
         ->assertSee('Provider settings')
-        ->assertSee('Android-only · Local sessions · No account required');
+        ->assertSee('Stored only on this phone · No account needed');
 });
 
 it('opens the diagnosis screen', function () {

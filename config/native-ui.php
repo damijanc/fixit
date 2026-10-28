@@ -44,20 +44,26 @@ return [
             'primary' => '#0F766E',
             'on-primary' => '#FFFFFF',
 
-            // Secondary / muted action color.
-            'secondary' => '#475569',
-            'on-secondary' => '#FFFFFF',
+            // Secondary = tonal teal for supporting actions next to a primary one.
+            'secondary' => '#CCE8E4',
+            'on-secondary' => '#134E4A',
+
+            // Tinted containers: home hero card, AI message bubbles, safety card.
+            'primary-container' => '#E6F4F2',
+            'on-primary-container' => '#134E4A',
+            'warning-container' => '#FEF3C7',
+            'on-warning-container' => '#78350F',
 
             // Surface = cards, sheets, dialogs. Background = page root.
             'surface' => '#FFFFFF',
             'on-surface' => '#1B1B18',
-            'background' => '#FAFAFA',
+            'background' => '#F6F7F6',
             'on-background' => '#1B1B18',
 
             // Surface variant = filled text fields, muted tonal surfaces.
             // on-surface-variant = muted label/hint text on those surfaces.
-            'surface-variant' => '#FAFAFA',
-            'on-surface-variant' => '#706F6C',
+            'surface-variant' => '#EEF1F0',
+            'on-surface-variant' => '#5F625F',
 
             // Outline = neutral borders (text fields, dividers, cards).
             'outline' => '#E5E5E5',
@@ -77,8 +83,13 @@ return [
             'primary' => '#14B8A6',
             'on-primary' => '#FFFFFF',
 
-            'secondary' => '#94A3B8',
-            'on-secondary' => '#0F172A',
+            'secondary' => '#1E3B38',
+            'on-secondary' => '#99F6E4',
+
+            'primary-container' => '#12302D',
+            'on-primary-container' => '#CCFBF1',
+            'warning-container' => '#3A2A0A',
+            'on-warning-container' => '#FCD34D',
 
             'surface' => '#161615',
             'on-surface' => '#EDEDEC',

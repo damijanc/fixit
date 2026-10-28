@@ -48,6 +48,9 @@ class Diagnosis extends NativeComponent
 
     public bool $followUpBusy = false;
 
+    /** @var list<array{role: string, text: string}> */
+    public array $turns = [];
+
     public string $safetyNotice = '';
 
     public string $providerName = 'your AI provider';
@@ -85,6 +88,8 @@ class Diagnosis extends NativeComponent
         if ($session->status === 'escalated') {
             $this->safetyNotice = 'This session was escalated for safety. Use a qualified professional for mains or gas work.';
         }
+
+        $this->turns = app(RepairSessionService::class)->followUpTurns($session);
 
         $followUp = app(RepairSessionService::class)->latestFollowUp($session);
         if ($followUp !== null) {
@@ -139,6 +144,7 @@ class Diagnosis extends NativeComponent
         $this->followUpAnswer = '';
         $this->followUpStatus = '';
         $this->followUpResult = '';
+        $this->turns = [];
         $this->safetyNotice = '';
 
         $session = app(RepairSessionService::class)->startWithPhoto($path, trim($this->symptoms));
@@ -180,6 +186,7 @@ class Diagnosis extends NativeComponent
         $this->followUpAnswer = '';
         $this->followUpStatus = '';
         $this->followUpResult = '';
+        $this->turns = [];
         $this->safetyNotice = '';
         $this->cameraStatus = 'Photo discarded.';
     }
@@ -231,6 +238,7 @@ class Diagnosis extends NativeComponent
             $this->followUpAnswer = '';
             $this->followUpStatus = '';
             $this->followUpResult = '';
+            $this->turns = app(RepairSessionService::class)->followUpTurns($session);
             $this->sessionNotice = 'Repair session saved locally.';
         } catch (AiException $exception) {
             $this->visionStatus = $exception->getMessage();
@@ -293,6 +301,7 @@ PROMPT;
 
             $this->followUpAnswer = '';
             $this->followUpResult = $assessment->text;
+            $this->turns = app(RepairSessionService::class)->followUpTurns($session);
             $this->safetyNotice = $assessment->blocked
                 ? 'Safety filter blocked unsafe guidance. This needs a qualified professional.'
                 : ($assessment->escalated ? 'Safety note: mains or gas risk. Use a qualified professional.' : '');

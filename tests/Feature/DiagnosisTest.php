@@ -112,7 +112,7 @@ it('restores the latest repair session after a restart', function () {
     $session = RepairSession::query()->latest('updated_at')->firstOrFail();
 
     Native::visit('/diagnosis/'.$session->id)
-        ->assertSee('Previous repair session loaded from local storage.')
+        ->assertSee('Resumed the previous repair session.')
         ->assertSee('The image shows a blue test object.')
         ->assertElement('image', fn (array $node): bool => ($node['ref'] ?? null) === 'captured-photo');
 });
@@ -132,15 +132,17 @@ it('continues the diagnosis with a follow-up answer and restores it', function (
         ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
         ->set('symptoms', 'no water flow')
         ->tap('analyze-photo-button')
-        ->assertSee('Continue the diagnosis')
+        ->assertSee('Your answer')
         ->set('followUpAnswer', 'follow-up answer: the light is on')
         ->tap('send-follow-up-button')
-        ->assertSee('Follow-up result: the pump may be blocked.');
+        ->assertSee('Follow-up result: the pump may be blocked.')
+        ->assertSee('follow-up answer: the light is on');
 
     $session = RepairSession::query()->latest('updated_at')->firstOrFail();
 
     Native::visit('/diagnosis/'.$session->id)
         ->assertSee('Follow-up result: the pump may be blocked.')
+        ->assertSee('follow-up answer: the light is on')
         ->assertSee('Resumed the previous follow-up answer.');
 
     expect($session->observations()->where('kind', 'follow_up_answer')->count())->toBe(1);

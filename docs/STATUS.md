@@ -19,6 +19,7 @@ Updated: 2026-10-28
 - Multi-turn follow-up: **VERIFIED** on emulator — prior photo prompt + assistant result + user answer sent as a conversation; response persisted and restored after relaunch. Evidence: `docs/evidence/2026-10-27-emulator-followup-restored.png`.
 - Deterministic safety filtering: **VERIFIED** by unit + UI tests — hazardous instructions are blocked before display; mains/gas mentions escalate; blocked raw text is not stored.
 - Screens: **VERIFIED on emulator** — Home landing, Diagnosis, Result and History with navigation and saved-session lists. Evidence: `docs/evidence/2026-10-27-emulator-home-screens.png`, `...-history.png`, `...-result-screen.png`.
+- UI polish (T14): **IMPLEMENTED** on `task/t14-ui-polish` — chat-style diagnosis thread, camera-first Home, cleaner Settings; host tests and emulator screens checked; real-key and physical-device pass pending.
 - Android release build: **local signed release APK VERIFIED** — 76.77 MB, `apksigner` certificate checked, installed and launched on the `Pixel_9a` emulator. Built with an ephemeral local keystore.
 - Android CI: **VERIFIED with stable signing** — run 40652416378 (main, 2026-10-28) built and uploaded a signed release APK after a transient NativePHP binary-download retry. `apksigner` shows `CN=FixIt Release, OU=Mobile, O=FixIt, L=Berlin, ST=Berlin, C=DE`.
 - Release publishing: **VERIFIED on tag `v0.0.5-ci-test`** — GitHub Actions run 40659466606 built the signed APK, verified it, created a GitHub Release and attached `app-release.apk` + SHA-256. Test tag/release removed afterwards.
@@ -245,6 +246,17 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
 - Not verified: real provider keys (DeepSeek regression, OpenRouter Claude/GPT, HF, direct Anthropic/OpenAI) and the physical ZTE 8050 pass; release build of T13; demo video.
 - Blockers/decisions: no provider keys or physical device were available in this environment. Custom model IDs are deferred; only curated vision models are selectable. OpenAI direct uses the Responses API; Anthropic uses its Messages API. ADR 0004 records the one-key invariant.
 - Next executable action: with user-supplied keys (entered on device, never committed), repeat Settings test + photo/follow-up for DeepSeek, OpenRouter Claude, OpenRouter GPT and HF on the ZTE; record limitations, then open the T13 PR.
+
+### 2026-10-28 — T14 UI polish (design only)
+- Branch/PR: `task/t14-ui-polish` (PR pending).
+- Changed files: `resources/views/native/{home,diagnosis,result,history,settings}.blade.php`, new `resources/views/native/partials/message.blade.php`; `config/native-ui.php` (tonal secondary, `primary-container`, `warning-container`, softer neutrals); new `app/Support/DisplayText.php`; `RepairSessionService::followUpTurns()`; display-only properties in `Home`, `History`, `Diagnosis`, `Result`; tests (`HomeTest`, `DiagnosisTest`, `SettingsTest` copy updates; new `DisplayTextTest`, `followUpTurns` test); `docs/TASKS.md`; evidence screenshots.
+- Implemented: top bars with icon buttons instead of stacked pill buttons; one filled button per screen; camera-first Home hero with latest-repair row; Diagnosis as a chat thread (photo + symptoms, every saved AI reply and user answer, amber safety card) anchored to the bottom with a pinned answer composer; single status line instead of four; Markdown stripped from AI text and replies split into lines; readable status labels; History/Result as list/thread; Settings key banner, Test/Save side by side, key storage notes grouped. No AI, safety, consent, storage or navigation behaviour changed; all action refs kept.
+- Verified (command, environment/device, result):
+  - `php artisan test` — host, PHP 8.5.12 — 99 passed, 598 assertions.
+  - `php artisan native:run android emulator-5554 --no-tty --no-vite` — emulator `Pixel_9a` (Android 17 / API 37) — Home (empty and with sessions), Diagnosis camera card, Settings, and a seeded two-turn conversation in Diagnosis/Result/History rendered as designed; thread opened scrolled to the latest message. Sample session was inserted into the emulator SQLite DB (no AI call). Evidence: `docs/evidence/2026-10-28-t14-*.png`.
+- Not verified: live photo → AI reply → follow-up flow with a real key on the redesigned screens; physical device; dark mode; large system font sizes; keyboard overlap with the pinned composer.
+- Blockers/decisions: native `select` only takes plain option values (the value is persisted), so dropdowns still show provider/model IDs; the readable names are shown as supporting text. List-item rows paint square backgrounds, so list cards lose their rounded corners.
+- Next executable action: merge, build, and on the ZTE run a real DeepSeek photo + two follow-ups; check keyboard behaviour on the composer and dark mode.
 
 
 ## Handoff entry template

@@ -23,7 +23,7 @@ it('shows the default provider, model and no key initially', function () {
 
     Native::visit('/settings')
         ->assertSee('Settings')
-        ->assertSee('No key saved for this provider yet.')
+        ->assertSee('No key saved yet')
         ->assertSee('DeepSeek')
         ->assertSee('deepseek-flash')
         ->assertSee('openrouter')
@@ -39,7 +39,7 @@ it('saves the provider key in secure storage and hides it from the UI', function
         ->set('apiKey', 'sk-fixit-secure-test-123')
         ->tap('save-settings-button')
         ->assertSee('Provider settings and API key saved securely on this device.')
-        ->assertSee('A key is saved for this provider.')
+        ->assertSee('Key saved')
         ->assertDontSee('sk-fixit-secure-test-123');
 
     expect($store->get()->apiKey)->toBe('sk-fixit-secure-test-123');
@@ -132,8 +132,8 @@ it('does not claim a key for a removed provider', function () {
 
     Native::visit('/settings')
         ->assertSee('The previously selected provider is no longer available.')
-        ->assertSee('No key saved for this provider yet.')
-        ->assertDontSee('A key is saved for this provider.');
+        ->assertSee('No key saved yet')
+        ->assertDontSee('FixIt is ready to use');
 });
 
 it('tests the connection with the saved provider and key', function () {
@@ -169,7 +169,7 @@ it('removes the saved key but keeps the provider selection', function () {
         ->assertSee('Remove saved key')
         ->tap('remove-key-button')
         ->assertSee('Saved API key removed from this device.')
-        ->assertSee('No key saved for this provider yet.');
+        ->assertSee('No key saved yet');
 
     expect($store->get()->apiKey)->toBeNull();
     expect($store->get()->providerId)->toBe('openrouter');
