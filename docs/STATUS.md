@@ -237,7 +237,7 @@ T13 follow-up: run real-key smoke tests with DeepSeek, OpenRouter (Claude and GP
 - Implemented: curated one-provider/one-model/one-key selection for DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI; Symfony AI bridge factory; encrypted `ai-settings.enc` with legacy `ai-key.enc` migration; provider-named errors; vision capability guard; dynamic provider copy in Diagnosis; removal of the hard-coded `sk-` key rule.
 - Verified (command, environment/device, result):
   - `php artisan test --compact` — host, PHP 8.5.12 — 94 passed, 581 assertions.
-  - GitHub Actions `PHP tests` on PR #18 — run `40670458177` — **pass** (21 s).
+  - GitHub Actions `PHP tests` on PR #18 — run `40670700665` — **pass** (18 s).
   - Emulator `Pixel_9a` (Android 17 / API 37), JDK 17.0.21, debug APK — Settings shows DeepSeek/`deepseek-flash`, provider/model selects and provider-specific hints; switching to OpenRouter updates the model and blocks old-key reuse; one-key save + **Test connection** returned `Connected: FixIt AI connectivity OK` for DeepSeek, OpenRouter and Hugging Face against the local fake provider.
   - Emulator Hugging Face path — photo consent/button named Hugging Face, image uploaded through the HF bridge, synthetic vision result rendered, multi-turn follow-up succeeded and persisted.
   - Local fake-provider base URLs were removed from `.env`, app data cleared, APK rebuilt against `https://api.deepseek.com` with no saved key; APK scan found zero occurrences of the fake keys.
