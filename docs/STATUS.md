@@ -260,7 +260,7 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
 - Next executable action: merge, build, and on the ZTE run a real DeepSeek photo + two follow-ups; check keyboard behaviour on the composer and dark mode.
 
 ### 2026-10-28 — T15 Symfony AI integration clean-up
-- Branch/PR: `task/t15-symfony-ai-refactor` (PR pending).
+- Branch/PR: `task/t15-symfony-ai-refactor` (PR #22).
 - Changed files: `app/Services/AI/{AiRequestFailedException,ModelGateway}.php`; new `app/Services/AI/{AgentFactory,SymfonyAgentFactory}.php`; new `app/Services/Diagnosis/{DiagnosisPrompts,ConversationBuilder}.php`; `app/NativeComponents/Diagnosis.php` (calls the new services, prompt methods removed); `app/Providers/AppServiceProvider.php` (binds `AgentFactory`); `tests/Support/TestGateway.php`; `tests/Unit/Services/AI/ModelGatewayTest.php`; new `AiRequestFailedExceptionTest`, `SymfonyAgentFactoryTest`, `DiagnosisPromptsTest`, `ConversationBuilderTest`, `tests/Feature/DiagnosisPromptWiringTest.php`; `docs/architecture.md`, `docs/TASKS.md`.
 - Implemented:
   - Bug fix: Symfony AI throws typed exceptions without an HTTP code, so 401/400/404/429/5xx all showed "could not be reached. Check the internet connection". The type is now mapped to the right message (rate-limit `Retry-After` and context-too-long included).
