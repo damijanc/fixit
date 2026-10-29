@@ -13,9 +13,9 @@ it('exposes the curated providers and models', function () {
     expect(array_keys($catalog->providers()))
         ->toBe(['deepseek', 'openrouter', 'huggingface', 'anthropic', 'openai']);
 
-    expect($catalog->defaultProviderId())->toBe('deepseek');
-    expect($catalog->defaultProvider()->name)->toBe('DeepSeek');
-    expect($catalog->defaultModel()->id)->toBe('deepseek-flash');
+    expect($catalog->defaultProviderId())->toBe('anthropic');
+    expect($catalog->defaultProvider()->name)->toBe('Anthropic');
+    expect($catalog->defaultModel()->id)->toBe('claude-opus-5-5');
     expect($catalog->defaultModel()->supportsVision)->toBeTrue();
 });
 

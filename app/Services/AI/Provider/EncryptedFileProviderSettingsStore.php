@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\Crypt;
  */
 final class EncryptedFileProviderSettingsStore implements ProviderSettingsStore
 {
+    private const LEGACY_PROVIDER = 'deepseek';
+
     public function __construct(
         private readonly string $path,
         private readonly ?string $legacyKeyPath,
@@ -151,7 +153,11 @@ final class EncryptedFileProviderSettingsStore implements ProviderSettingsStore
             return null;
         }
 
-        $settings = $this->defaults()->withApiKey($apiKey);
+        // The legacy file only ever held a DeepSeek key, whatever the current default provider is.
+        $deepseek = $this->catalog->get(self::LEGACY_PROVIDER);
+        $settings = $deepseek !== null
+            ? new ProviderSettings(self::LEGACY_PROVIDER, $deepseek->defaultModel()->id, $apiKey)
+            : $this->defaults()->withApiKey($apiKey);
 
         if ($this->write($settings)) {
             @unlink($this->legacyKeyPath);

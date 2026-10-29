@@ -57,10 +57,15 @@ jobs:
           cp .env.example .env
           php artisan key:generate
 
+          # Release builds: no debug pages or debug-only log detail on the phone.
+          sed -i "s/^APP_ENV=.*/APP_ENV=production/" .env
+          sed -i "s/^APP_DEBUG=.*/APP_DEBUG=false/" .env
+          sed -i "s/^LOG_LEVEL=.*/LOG_LEVEL=info/" .env
+
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF_NAME#v}"
           else
-            VERSION="0.0.6-t13-pr${GITHUB_RUN_NUMBER}"
+            VERSION="0.0.0-ci${GITHUB_RUN_NUMBER}"
           fi
           sed -i "s/^NATIVEPHP_APP_VERSION=.*/NATIVEPHP_APP_VERSION=${VERSION}/" .env
           sed -i "s/^NATIVEPHP_APP_VERSION_CODE=.*/NATIVEPHP_APP_VERSION_CODE=${{ github.run_number }}/" .env
