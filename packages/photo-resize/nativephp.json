@@ -1,0 +1,50 @@
+{
+    "name": "fixit/photo-resize",
+    "version": "1.0.0",
+    "description": "Downscales captured photos on Android before they are uploaded",
+    "namespace": "PhotoResize",
+    "keywords": [],
+    "category": "utilities",
+    "license": "MIT",
+    "platforms": [
+        "android"
+    ],
+    "bridge_functions": [
+        {
+            "name": "PhotoResize.Downscale",
+            "android": "com.fixit.plugins.photo_resize.PhotoResizeFunctions.Downscale",
+            "android_params": [
+                "context"
+            ],
+            "description": "Downscale a JPEG in place to a maximum long edge"
+        }
+    ],
+    "android": {
+        "min_version": 26,
+        "permissions": [],
+        "repositories": [],
+        "dependencies": {
+            "implementation": []
+        },
+        "activities": [],
+        "services": [],
+        "receivers": [],
+        "providers": []
+    },
+    "ios": {
+        "min_version": "18.2",
+        "permissions": [],
+        "repositories": [],
+        "dependencies": {
+            "swift_packages": [],
+            "pods": []
+        }
+    },
+    "assets": {
+        "android": []
+    },
+    "secrets": [],
+    "events": [],
+    "service_provider": "Fixit\\PhotoResize\\PhotoResizeServiceProvider",
+    "hooks": {}
+}

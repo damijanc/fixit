@@ -1,0 +1,30 @@
+{
+    "name": "fixit/photo-resize",
+    "description": "Downscales captured photos on Android before they are uploaded",
+    "type": "nativephp-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Damijan Cavar"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "nativephp/mobile": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Fixit\\PhotoResize\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Fixit\\PhotoResize\\PhotoResizeServiceProvider"
+            ]
+        },
+        "nativephp": {
+            "manifest": "nativephp.json"
+        }
+    }
+}

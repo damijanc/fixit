@@ -9,7 +9,8 @@ Updated: 2026-10-29
 - Active branch: `main` (T13 merged as IMPLEMENTED in PR #18; real-key and physical-device smoke tests pending).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 208 tests, 1031 assertions (T20 branch, includes T16–T22).
+- Host test suite: VERIFIED — 213 tests, 1044 assertions (T23 branch, includes T16–T22).
+- Photo downscale (T23): **VERIFIED on the ZTE 8050** on `task/t23-photo-downscale` — a local NativePHP plugin (`packages/photo-resize`, Android Kotlin) shrinks each captured photo to a 1568 px long edge before it is stored or uploaded (2.6 MB → 178 KB), applies the EXIF rotation and drops EXIF/GPS.
 - Claude showcase (T20): **VERIFIED on the ZTE 8050** on `task/t20-claude-showcase` — with Claude, the diagnosis is a strict JSON schema (`output_config.format`) rendered as a card (object, likely cause, confidence, numbered safe checks, professional warning, question); every field passes the safety rules and mains/gas/battery hazards escalate; token usage and prompt-cache writes/reads are logged per call.
 - Safety filter false positives (T22): **VERIFIED** on `task/t22-safety-false-positives` (PR #28) — phone-charging advice (protective case, other wall socket, battery-charging setting, "remove the case") no longer blocked; opening casings, mains work and protection bypasses stay blocked; blocks logged by rule id (plus matched words in debug builds); the blocked ZTE photo now gets an answer.
 - Busy feedback (T21): **VERIFIED**, merged in PR #27 — AI calls (photo, follow-up, Settings Test) run as NativePHP async tasks on a background PHP thread, so spinners, progress text and locked controls render immediately; emulator screenshots of each busy state plus a hand check with Claude on the ZTE 8050.
@@ -397,7 +398,24 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
   - Physical ZTE 8050, real Anthropic key, Claude Opus 5.5, MacBook photo + "battery is draining fast": card rendered with object, cause, confidence, five checks and a question; log `input_tokens 4, output_tokens 742, cache_creation_tokens 5607`.
   - Same diagnosis, follow-up "it drains when laptop is on" with the final build: updated card (medium confidence, Activity Monitor / Chrome / brightness checks); log `output_tokens 539, cache_creation_tokens 1480, cache_read_tokens 0`.
 - Not verified: a cache **read** on the device. The follow-up uses a different system prompt and resends the history without the photo, so it cannot reuse the photo call's prefix; a second follow-up in the same diagnosis should read the 1480 cached tokens. Structured output on Sonnet/Haiku 5.5 was not run with a real key.
-- Next executable action: open the PR and merge; then shrink photos before upload (native Android code).
+- Next executable action: merge; then T23 (shrink photos before upload).
+
+### 2026-10-29 — T23 Shrink photos before upload
+- Branch/PR: `task/t23-photo-downscale`, from `main` after PR #29.
+- Changed files: `packages/photo-resize/` (new local NativePHP plugin: `nativephp.json`, `composer.json`, `README.md`, `resources/android/PhotoResizeFunctions.kt`, `src/PhotoResize.php`, `src/PhotoResizeServiceProvider.php`); `composer.json` + `composer.lock` (path repository, `fixit/photo-resize: @dev`); `app/Providers/NativeServiceProvider.php` (plugin enabled); `app/NativeComponents/Diagnosis.php` (`shrinkPhoto()` in `handlePhotoTaken`); `tests/Unit/PhotoResizeTest.php` (new), `tests/Feature/DiagnosisTest.php`; `docs/STATUS.md`, `docs/TASKS.md`.
+- Why native: the Android PHP build has no GD (T17) and no Imagick; the camera plugin has no size or quality option.
+- Implemented:
+  - Bridge function `PhotoResize.Downscale` (Context-only, Android): decodes with a power-of-two sample size, scales to a 1568 px long edge (Claude's own downscale limit), applies the EXIF orientation, writes JPEG quality 85 to a temp file and renames it over the original — a failure leaves the photo untouched. Photos already within the limit are not rewritten. Errors use NativePHP's `BridgeResponse.error`.
+  - `Fixit\PhotoResize\PhotoResize::downscale()` returns path/size or `null` (bridge missing, error, bad JSON).
+  - `Diagnosis::handlePhotoTaken()` shrinks the photo before the session is saved; logs `Photo downscaled` (bytes before/after, dimensions) or `Photo not downscaled`.
+  - The rewritten file has no EXIF, so GPS and device metadata are no longer uploaded.
+- Verified (command, environment/device, result):
+  - `php artisan test` — 213 passed, 1044 assertions (bridge parameters, three failure cases, capture flow calls the bridge and keeps the path).
+  - `vendor/bin/pint --test` on changed PHP files — passed. `php artisan native:plugin:validate packages/photo-resize` — OK.
+  - `php artisan native:run android emulator-5554 --no-tty --no-vite` — Kotlin compiled; emulator photo 1440×1920 64 KB → 1176×1568 25 KB.
+  - Physical ZTE 8050 (`native:run android LZV50SDEDC3001352`), portrait photo of a laptop: `Downscaled 3072x4032 to 1195x1568, 178507 bytes` (from 2,598,636 bytes); pulled file is upright, no orientation tag; Claude Opus 5.5 card answer correct ("Laptop fan is loud"), photo request `cache_creation_tokens 3327` vs 5607 for the full-size photo earlier.
+- Not verified: Hugging Face photo diagnosis with the smaller file (the `deepinfra` routing from T17 stays); a landscape photo; very low-memory devices (OutOfMemoryError is caught and the original kept).
+- Next executable action: merge; then a cache-read check (second follow-up) or T12.
 
 ## Handoff entry template
 

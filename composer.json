@@ -13,6 +13,11 @@
     "license": "MIT",
     "repositories": [
         {
+            "name": "photo-resize",
+            "type": "path",
+            "url": "packages/photo-resize"
+        },
+        {
             "name": "nativephp-plugins",
             "type": "composer",
             "url": "https://plugins.nativephp.com"
@@ -20,6 +25,7 @@
     ],
     "require": {
         "php": "^8.3",
+        "fixit/photo-resize": "@dev",
         "laravel/boost": "^2.0",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
