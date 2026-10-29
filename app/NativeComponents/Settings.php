@@ -37,6 +37,9 @@ class Settings extends NativeComponent
 
     public bool $savedHasKey = false;
 
+    /** A connection test is running. */
+    public bool $testing = false;
+
     public function mount(): void
     {
         $store = app(ProviderSettingsStore::class);
@@ -204,17 +207,24 @@ class Settings extends NativeComponent
             return;
         }
 
+        if ($this->testing) {
+            return;
+        }
+
+        $this->testing = true;
         $this->status = "Contacting {$this->providerName}…";
 
-        try {
-            $reply = app(ModelGateway::class)->ask('Reply with exactly: FixIt AI connectivity OK');
-            $this->status = 'Connected: '.$reply;
-        } catch (AiException $exception) {
-            $this->status = $exception->getMessage();
-        } catch (\Throwable $exception) {
-            report($exception);
-            $this->status = 'Unexpected error while contacting the model.';
-        }
+        // Background thread so the spinner and status render right away.
+        $this->async(static fn (): string => app(ModelGateway::class)->ask('Reply with exactly: FixIt AI connectivity OK'))
+            ->timeout((int) config('ai.timeout', 60) + 30)
+            ->finished(function (string $reply): void {
+                $this->testing = false;
+                $this->status = 'Connected: '.$reply;
+            })
+            ->failed(function (\Throwable $exception): void {
+                $this->testing = false;
+                $this->status = AiException::displayMessage($exception, 'Unexpected error while contacting the model.');
+            });
     }
 
     public function goBack(): void

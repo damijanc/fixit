@@ -50,6 +50,12 @@ class Diagnosis extends NativeComponent
 
     public string $followUpAnswer = '';
 
+    /** Text the follow-up field shows when it mounts: a failed answer to retry. */
+    public string $followUpInitial = '';
+
+    /** The answer being sent, shown in the thread until the reply arrives. */
+    public string $pendingAnswer = '';
+
     public string $followUpStatus = '';
 
     public string $followUpResult = '';
@@ -152,6 +158,7 @@ class Diagnosis extends NativeComponent
         $this->visionError = '';
         $this->visionResult = '';
         $this->followUpAnswer = '';
+        $this->followUpInitial = '';
         $this->followUpStatus = '';
         $this->followUpResult = '';
         $this->turns = [];
@@ -196,6 +203,7 @@ class Diagnosis extends NativeComponent
         $this->sessionId = '';
         $this->sessionNotice = '';
         $this->followUpAnswer = '';
+        $this->followUpInitial = '';
         $this->followUpStatus = '';
         $this->followUpResult = '';
         $this->turns = [];
@@ -216,54 +224,70 @@ class Diagnosis extends NativeComponent
         }
 
         $this->visionBusy = true;
-        $this->visionStatus = "Uploading the photo to {$this->providerName} for analysis…";
+        $this->visionStatus = '';
         $this->visionError = '';
         $this->visionResult = '';
         $this->safetyNotice = '';
 
-        try {
-            $prompts = app(DiagnosisPrompts::class);
-            $prompt = $prompts->photoRequest($this->symptoms);
-            $result = app(ModelGateway::class)->askWithImage($prompt, $this->photoPath, $prompts->photoSystem());
+        $prompts = app(DiagnosisPrompts::class);
+        $prompt = $prompts->photoRequest($this->symptoms);
+        $system = $prompts->photoSystem();
+        $photoPath = $this->photoPath;
 
-            $session = $this->sessionId !== ''
-                ? RepairSession::query()->find($this->sessionId)
-                : null;
+        // The model call runs on a background PHP thread so the busy state
+        // renders immediately; the UI thread would otherwise block until the
+        // reply arrives and the tap would look like it did nothing.
+        $this->async(static fn (): string => app(ModelGateway::class)->askWithImage($prompt, $photoPath, $system))
+            ->timeout(self::aiTaskTimeout())
+            ->finished(fn (string $result) => $this->photoAnalyzed($prompt, $result))
+            ->failed(function (\Throwable $exception): void {
+                $this->visionBusy = false;
+                $this->visionError = AiException::displayMessage($exception, 'Unexpected error while analyzing the photo.');
+            });
+    }
 
-            if (! $session instanceof RepairSession) {
-                $session = app(RepairSessionService::class)->startWithPhoto($this->photoPath, trim($this->symptoms));
-                $this->sessionId = $session->id;
-            }
+    private function photoAnalyzed(string $prompt, string $result): void
+    {
+        $this->visionBusy = false;
 
-            if (trim($this->symptoms) !== '' && $session->symptoms !== trim($this->symptoms)) {
-                $session->forceFill(['symptoms' => trim($this->symptoms)])->save();
-            }
+        $session = $this->sessionId !== ''
+            ? RepairSession::query()->find($this->sessionId)
+            : null;
 
-            $assessment = app(SafetyFilter::class)->assess($result);
-            $status = $assessment->blocked || $assessment->escalated ? 'escalated' : 'awaiting_follow_up';
-
-            app(RepairSessionService::class)->recordVisionResult($session, $prompt, $assessment->text, $status);
-
-            $this->visionResult = $assessment->text;
-            $this->safetyNotice = $assessment->blocked
-                ? 'Safety filter blocked unsafe guidance. This needs a qualified professional.'
-                : ($assessment->escalated ? 'Safety note: mains or gas risk. Use a qualified professional.' : '');
-            $this->visionStatus = "{$this->providerName} response received. Check every suggestion before acting on it.";
-            $this->followUpAnswer = '';
-            $this->followUpStatus = '';
-            $this->followUpResult = '';
-            $this->turns = app(RepairSessionService::class)->followUpTurns($session);
-            $this->sessionNotice = 'Repair session saved locally.';
-        } catch (AiException $exception) {
-            $this->visionStatus = '';
-            $this->visionError = $exception->getMessage();
-        } catch (\Throwable $exception) {
-            report($exception);
-            $this->visionStatus = '';
-            $this->visionError = 'Unexpected error while analyzing the photo.';
-        } finally {
-            $this->visionBusy = false;
+        if (! $session instanceof RepairSession) {
+            $session = app(RepairSessionService::class)->startWithPhoto($this->photoPath, trim($this->symptoms));
+            $this->sessionId = $session->id;
         }
+
+        if (trim($this->symptoms) !== '' && $session->symptoms !== trim($this->symptoms)) {
+            $session->forceFill(['symptoms' => trim($this->symptoms)])->save();
+        }
+
+        $assessment = app(SafetyFilter::class)->assess($result);
+        $status = $assessment->blocked || $assessment->escalated ? 'escalated' : 'awaiting_follow_up';
+
+        app(RepairSessionService::class)->recordVisionResult($session, $prompt, $assessment->text, $status);
+
+        $this->visionResult = $assessment->text;
+        $this->safetyNotice = $assessment->blocked
+            ? 'Safety filter blocked unsafe guidance. This needs a qualified professional.'
+            : ($assessment->escalated ? 'Safety note: mains or gas risk. Use a qualified professional.' : '');
+        $this->visionStatus = "{$this->providerName} response received. Check every suggestion before acting on it.";
+        $this->followUpAnswer = '';
+        $this->followUpInitial = '';
+        $this->followUpStatus = '';
+        $this->followUpResult = '';
+        $this->turns = app(RepairSessionService::class)->followUpTurns($session);
+        $this->sessionNotice = 'Repair session saved locally.';
+    }
+
+    /**
+     * Longer than the HTTP timeout, so a slow provider reports its own error
+     * before the task is abandoned.
+     */
+    private static function aiTaskTimeout(): int
+    {
+        return (int) config('ai.timeout', 60) + 30;
     }
 
     public function sendFollowUp(): void
@@ -291,34 +315,55 @@ class Diagnosis extends NativeComponent
         }
 
         $this->followUpBusy = true;
-        $this->followUpStatus = 'Thinking about your answer…';
+        $this->pendingAnswer = $answer;
+        $this->followUpStatus = '';
 
-        try {
-            $result = app(ModelGateway::class)->continueConversation(
-                app(ConversationBuilder::class)->forFollowUp($session, $answer),
-                app(DiagnosisPrompts::class)->followUpSystem(),
-            );
+        $sessionId = $session->id;
+        $system = app(DiagnosisPrompts::class)->followUpSystem();
 
-            $assessment = app(SafetyFilter::class)->assess($result);
-            $status = $assessment->blocked || $assessment->escalated ? 'escalated' : 'awaiting_follow_up';
+        // Background thread, like analyzePhoto(); the session is reloaded there
+        // because models do not cross the thread boundary.
+        $this->async(static fn (): string => app(ModelGateway::class)->continueConversation(
+            app(ConversationBuilder::class)->forFollowUp(RepairSession::query()->findOrFail($sessionId), $answer),
+            $system,
+        ))
+            ->timeout(self::aiTaskTimeout())
+            ->finished(fn (string $result) => $this->followUpAnswered($answer, $result))
+            ->failed(function (\Throwable $exception) use ($answer): void {
+                $this->followUpBusy = false;
+                $this->pendingAnswer = '';
+                // The field remounted empty while the answer sat in the thread.
+                $this->followUpInitial = $answer;
+                $this->followUpStatus = AiException::displayMessage($exception, 'Unexpected error while continuing the diagnosis.');
+            });
+    }
 
-            app(RepairSessionService::class)->recordFollowUp($session, $answer, $assessment->text, $status);
+    private function followUpAnswered(string $answer, string $result): void
+    {
+        $this->followUpBusy = false;
+        $this->pendingAnswer = '';
 
-            $this->followUpAnswer = '';
-            $this->followUpResult = $assessment->text;
-            $this->turns = app(RepairSessionService::class)->followUpTurns($session);
-            $this->safetyNotice = $assessment->blocked
-                ? 'Safety filter blocked unsafe guidance. This needs a qualified professional.'
-                : ($assessment->escalated ? 'Safety note: mains or gas risk. Use a qualified professional.' : '');
-            $this->followUpStatus = 'Follow-up saved locally.';
-        } catch (AiException $exception) {
-            $this->followUpStatus = $exception->getMessage();
-        } catch (\Throwable $exception) {
-            report($exception);
-            $this->followUpStatus = 'Unexpected error while continuing the diagnosis.';
-        } finally {
-            $this->followUpBusy = false;
+        $session = RepairSession::query()->find($this->sessionId);
+
+        if (! $session instanceof RepairSession) {
+            $this->followUpStatus = 'The repair session was removed while waiting for the answer.';
+
+            return;
         }
+
+        $assessment = app(SafetyFilter::class)->assess($result);
+        $status = $assessment->blocked || $assessment->escalated ? 'escalated' : 'awaiting_follow_up';
+
+        app(RepairSessionService::class)->recordFollowUp($session, $answer, $assessment->text, $status);
+
+        $this->followUpAnswer = '';
+        $this->followUpInitial = '';
+        $this->followUpResult = $assessment->text;
+        $this->turns = app(RepairSessionService::class)->followUpTurns($session);
+        $this->safetyNotice = $assessment->blocked
+            ? 'Safety filter blocked unsafe guidance. This needs a qualified professional.'
+            : ($assessment->escalated ? 'Safety note: mains or gas risk. Use a qualified professional.' : '');
+        $this->followUpStatus = 'Follow-up saved locally.';
     }
 
     public function render(): View

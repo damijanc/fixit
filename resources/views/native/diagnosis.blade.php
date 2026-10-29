@@ -102,6 +102,7 @@
                         :value="$symptomsInitial"
                         _change="__syncProperty('symptoms')"
                         sync-mode="live"
+                        :disabled="$visionBusy"
                         a11y-label="Symptoms"
                     />
 
@@ -138,11 +139,25 @@
                         {{ $visionBusy ? 'Sending to '.$providerName.'…' : 'Send photo to '.$providerName }}
                     </native:button>
 
+                    @if ($visionBusy)
+                        <row
+                            ref="vision-progress"
+                            class="mt-3 w-full items-center gap-2 px-1"
+                            a11y-label="Analyzing the photo"
+                        >
+                            <native:activity-indicator size="sm" />
+                            <text class="flex-1 text-xs text-theme-on-surface-variant">
+                                {{ $providerName }} is looking at your photo. This can take up to 30 seconds.
+                            </text>
+                        </row>
+                    @endif
+
                     <native:button
                         ref="discard-photo-button"
                         variant="ghost"
                         icon="delete"
                         class="mt-1 w-full"
+                        :disabled="$visionBusy"
                         a11y-label="Discard photo"
                         a11y-hint="Deletes the captured photo from this device"
                         @tap="discardPhoto"
@@ -172,6 +187,10 @@
                 @foreach ($turns as $index => $turn)
                     @include('native.partials.message', ['role' => $turn['role'], 'text' => $turn['text'], 'ref' => 'turn-'.$index])
                 @endforeach
+
+                @if ($pendingAnswer !== '')
+                    @include('native.partials.message', ['role' => 'user', 'text' => $pendingAnswer, 'ref' => 'pending-answer'])
+                @endif
 
                 @if ($followUpBusy)
                     <row ref="thinking-indicator" class="mt-3 w-full items-center gap-2 pl-9">
@@ -231,10 +250,11 @@
                 label="Your answer"
                 placeholder="The light turns on but there is no water"
                 multiline
-                {{-- Typing syncs to $followUpAnswer without an echo. A sent answer adds turns above, so the field gets a new node id and remounts empty; a failed send keeps the text. --}}
-                value=""
+                {{-- Typing syncs to $followUpAnswer without an echo. A pending or sent answer adds nodes above, so the field gets a new node id and remounts; a failed send remounts it with the answer. --}}
+                :value="$followUpInitial"
                 _change="__syncProperty('followUpAnswer')"
                 sync-mode="live"
+                :disabled="$followUpBusy"
                 a11y-label="Follow-up answer"
             />
             <native:button

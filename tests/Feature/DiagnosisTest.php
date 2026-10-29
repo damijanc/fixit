@@ -6,8 +6,10 @@ use App\Models\RepairSession;
 use App\Services\AI\ModelGateway;
 use App\Services\Repair\RepairSessionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Native\Mobile\AsyncTask;
 use Native\Mobile\Testing\Native;
 use Native\Mobile\Testing\TestableComponent;
+use PHPUnit\Framework\AssertionFailedError;
 use Symfony\AI\Platform\Exception\ServerException;
 use Symfony\AI\Platform\Test\MockPlatformFactory;
 use Tests\Support\TestGateway;
@@ -335,16 +337,121 @@ it('keeps a failed follow-up answer in the field', function () {
         ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
         ->tap('analyze-photo-button');
 
-    $before = textInputNode($screen, 'follow-up-input')['id'];
     $fail = true;
 
-    // Same node id: the native field keeps the typed text for a retry.
+    // While the reply is pending the answer moves into the thread and the
+    // field remounts empty, so a failed send puts the text back as its value.
     $screen->input('follow-up-input', 'the light is on')
         ->tap('send-follow-up-button')
         ->assertSee('unavailable (HTTP 503)')
         ->assertSet('followUpAnswer', 'the light is on');
 
-    expect(textInputNode($screen, 'follow-up-input')['id'])->toBe($before);
+    expect(textInputNode($screen, 'follow-up-input')['props']['value'] ?? '')->toBe('the light is on');
+});
+
+/**
+ * The rendered node for a ref, or an empty array.
+ *
+ * @return array<string, mixed>
+ */
+function nodeByRef(TestableComponent $screen, string $type, string $ref): array
+{
+    $found = [];
+
+    try {
+        $screen->assertElement($type, function (array $node) use ($ref, &$found): bool {
+            if (($node['ref'] ?? null) !== $ref) {
+                return false;
+            }
+
+            $found = $node;
+
+            return true;
+        });
+    } catch (AssertionFailedError) {
+        return [];
+    }
+
+    return $found;
+}
+
+it('analyzes the photo off the UI thread', function () {
+    app()->instance(ModelGateway::class, TestGateway::make(
+        MockPlatformFactory::createPlatform('Vision result: I see a test object.'),
+    ));
+
+    Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->tap('analyze-photo-button')
+        ->assertSee('Vision result: I see a test object.')
+        ->assertSet('visionBusy', false);
+
+    AsyncTask::fakeInstance()->assertDispatchedTimes(1);
+});
+
+it('shows progress and locks the photo card while the photo is analyzed', function () {
+    $screen = Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->set('visionBusy', true)
+        ->assertSee('is looking at your photo');
+
+    expect(nodeByRef($screen, 'row', 'vision-progress'))->not->toBe([])
+        ->and(nodeByRef($screen, 'button', 'analyze-photo-button')['props']['loading'] ?? false)->toBeTrue()
+        ->and(nodeByRef($screen, 'button', 'discard-photo-button')['props']['disabled'] ?? false)->toBeTrue()
+        ->and(textInputNode($screen, 'symptoms-input')['props']['disabled'] ?? false)->toBeTrue();
+});
+
+it('keeps the provider error message from the background task', function () {
+    app()->instance(ModelGateway::class, TestGateway::make(
+        MockPlatformFactory::createPlatform(static function (): never {
+            throw new ServerException(503, 'internal server error');
+        }),
+    ));
+
+    Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->tap('analyze-photo-button')
+        ->assertSee('unavailable (HTTP 503)')
+        ->assertSet('visionBusy', false)
+        ->assertDontSee('is looking at your photo');
+});
+
+it('sends the follow-up off the UI thread', function () {
+    app()->instance(ModelGateway::class, TestGateway::make(
+        MockPlatformFactory::createPlatform(static function ($model, $input): string {
+            return str_contains((string) json_encode($input), 'the light is on')
+                ? 'Follow-up result: check the pump.'
+                : 'Vision result: I see a test object.';
+        }),
+    ));
+
+    Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->tap('analyze-photo-button')
+        ->input('follow-up-input', 'the light is on')
+        ->tap('send-follow-up-button')
+        ->assertSee('Follow-up result: check the pump.')
+        ->assertSet('followUpBusy', false)
+        ->assertSet('pendingAnswer', '');
+
+    AsyncTask::fakeInstance()->assertDispatchedTimes(2);
+});
+
+it('shows the answer in the thread and locks the composer while waiting', function () {
+    app()->instance(ModelGateway::class, TestGateway::make(
+        MockPlatformFactory::createPlatform('Vision result: I see a test object.'),
+    ));
+
+    $screen = Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->tap('analyze-photo-button')
+        ->set('pendingAnswer', 'the light is on')
+        ->set('followUpBusy', true)
+        ->assertSee('the light is on')
+        ->assertSee('Thinking…');
+
+    expect(textInputNode($screen, 'follow-up-input')['props']['disabled'] ?? false)->toBeTrue()
+        ->and(nodeByRef($screen, 'button', 'send-follow-up-button')['props']['loading'] ?? false)->toBeTrue();
 });
 
 it('fills the symptoms field from a resumed session', function () {
