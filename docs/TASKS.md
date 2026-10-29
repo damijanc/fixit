@@ -18,6 +18,7 @@ Use PLANNED, IN_PROGRESS, IMPLEMENTED, VERIFIED or BLOCKED. Only VERIFIED means 
 | T12 | P2 | PLANNED | Before/after photo comparison |
 | T15 | P1 | IMPLEMENTED | Symfony AI integration clean-up for code review: map Symfony AI typed exceptions to correct 401/404/429/5xx messages; `AgentFactory` + `SystemPromptInputProcessor`; no test-only constructor arguments in `ModelGateway`; prompts and follow-up history out of the Diagnosis component; host tests pass; real-key device smoke pending |
 | T14 | P2 | IMPLEMENTED | UI polish, no behaviour change: camera-first Home, diagnosis as a full conversation thread with pinned composer, readable statuses, markdown stripped from AI text, list-style History/Result, Settings key banner and button hierarchy; host tests pass; emulator screens checked; physical-device pass pending |
+| T16 | P0 | VERIFIED | API key field drops characters: debounce sync on the key field so live-sync echoes cannot overwrite typed or pasted text; emulator fake-provider check sends the exact key; host test added; real Hugging Face Test connection passed on the ZTE 8050 (PR #23); symptoms/follow-up fields still use live sync |
 | T13 | P0 | IMPLEMENTED | Multi-provider AI: DeepSeek, OpenRouter, Hugging Face (P0), Anthropic/OpenAI (P1); one encrypted provider/model/key selection in Settings; Symfony AI bridges; host tests pass; physical-device smoke tests pending (PR #18, merged) |
 
 ## Rules
