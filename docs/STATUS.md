@@ -9,12 +9,13 @@ Updated: 2026-10-28
 - Active branch: `main` (T13 merged as IMPLEMENTED in PR #18; real-key and physical-device smoke tests pending).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 179 tests, 852 assertions (T22 branch, from `main` after T19).
-- Safety filter false positives (T22): **VERIFIED** on `task/t22-safety-false-positives` — phone-charging advice (protective case, other wall socket, battery-charging setting, "remove the case") no longer blocked; opening casings, mains work and protection bypasses stay blocked; blocks logged by rule id (plus matched words in debug builds); the blocked ZTE photo now gets an answer.
-- Anthropic / Claude (T19): **VERIFIED on the ZTE 8050** with a real key on `task/t19-anthropic` — Claude Opus 5.5 (default), Sonnet 5.5 and Haiku 5.5; `max_tokens` 16000 and `effort: medium` per model; thinking replies and refusals handled; Test connection, photo diagnosis and follow-up passed.
+- Host test suite: VERIFIED — 187 tests, 935 assertions (T22 branch, includes T16–T21).
+- Safety filter false positives (T22): **VERIFIED** on `task/t22-safety-false-positives` (PR #28) — phone-charging advice (protective case, other wall socket, battery-charging setting, "remove the case") no longer blocked; opening casings, mains work and protection bypasses stay blocked; blocks logged by rule id (plus matched words in debug builds); the blocked ZTE photo now gets an answer.
+- Busy feedback (T21): **VERIFIED**, merged in PR #27 — AI calls (photo, follow-up, Settings Test) run as NativePHP async tasks on a background PHP thread, so spinners, progress text and locked controls render immediately; emulator screenshots of each busy state plus a hand check with Claude on the ZTE 8050.
+- Anthropic / Claude (T19): **VERIFIED on the ZTE 8050** with a real key, merged in PR #26 — Claude Opus 5.5 (default), Sonnet 5.5 and Haiku 5.5; `max_tokens` 16000 and `effort: medium` per model; thinking replies and refusals handled; Test connection, photo diagnosis and follow-up passed.
 - Diagnosis text fields (T18): **VERIFIED**, merged in PR #25 — symptoms and follow-up fields no longer drop characters (no echo of typed text); emulator fake-provider check plus hand typing on the ZTE 8050.
 - API key field (T16): **VERIFIED**, merged in PR #23 — the key field no longer drops characters (live-sync echo race in NativePHP's text input); emulator fake-provider check plus real Hugging Face Test connection on the ZTE 8050.
-- Hugging Face photo diagnosis (T17): **VERIFIED on the ZTE 8050** with a real token on `fix/vision-photo-downscale` (PR #24) — Hugging Face requests are routed to `deepinfra` because the router's default pick (novita) returned 503 for full-size phone photos; photo errors are shown next to the Send button.
+- Hugging Face photo diagnosis (T17): **VERIFIED on the ZTE 8050** with a real token, merged in PR #24 — Hugging Face requests are routed to `deepinfra` because the router's default pick (novita) returned 503 for full-size phone photos; photo errors are shown next to the Send button.
 - Multi-provider AI (T13): **IMPLEMENTED + emulator fake-provider smoke** — DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI are selectable; one encrypted provider/model/key selection; Symfony AI generic/HF/Anthropic/OpenAI bridges. Host tests cover platform construction, image payloads, migration, provider errors and no key cross-use. Emulator `Pixel_9a`: Settings selection, one-key save and Test connection passed for DeepSeek, OpenRouter and Hugging Face against the local fake provider; Hugging Face vision + multi-turn follow-up passed. Real provider keys and a physical device were not available.
 - Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37) and on a physical **ZTE 8050** (Android 13 / API 33, arm64, serial `LZV50SDEDC3001352`), package `com.fixit.app`.
 - Symfony AI in embedded Android PHP: **VERIFIED with a real DeepSeek call** on the physical ZTE 8050 — `deepseek-flash` returned `FixIt AI connectivity OK`.
@@ -346,8 +347,21 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
 - Not verified: Sonnet 5.5 and Haiku 5.5 with a real key; a real refusal; token usage and cache hits (not logged yet).
 - Next executable action: T20 — structured JSON diagnosis via `output_config.format` and logging token usage/cache reads to show prompt caching.
 
+### 2026-10-29 — T21 Show progress while an AI call runs
+- Branch/PR: `task/t21-busy-feedback` (PR #27, merged), from `main` after PR #26.
+- Changed files: `app/NativeComponents/{Diagnosis,Settings}.php`; `app/Services/AI/AiException.php` (`displayMessage()`); `resources/views/native/{diagnosis,settings}.blade.php`; `tests/Pest.php` (`AsyncTask::fake()` for Feature tests); `tests/Feature/{Diagnosis,Settings}Test.php`; `docs/STATUS.md`, `docs/TASKS.md`.
+- Problem: tapping Send photo, sending a follow-up or Settings → Test looked like nothing happened for 10–30 s. The handlers called the model synchronously on the UI PHP thread, so the existing loading button and "Thinking…" indicator could not render until the reply had arrived — by then the busy flag was false again.
+- Fix: each handler sets the busy state and dispatches the call with `$this->async(static fn () => …)` (NativePHP `AsyncTask`, a booted background PHP context). `finished()` runs the existing safety filter, persistence and UI updates on the UI thread; `failed()` shows `AiException::displayMessage()`, which keeps the original user-safe message carried by `AsyncTaskException::originalClass()` and reports anything else. Task timeout is `ai.timeout + 30` s, so the HTTP timeout reports first. The follow-up is reloaded from its session id in the background (models do not cross threads).
+- UI: photo — loading button "Sending to …", a progress row "… is looking at your photo. This can take up to 30 seconds.", symptoms field and Discard disabled. Follow-up — the answer appears in the thread as a pending bubble with "Thinking…", the composer is disabled and its button spins; a failed send remounts the field with the answer (`$followUpInitial`). Settings — Test button spins with "Testing…", status "Contacting …", Save disabled.
+- Verified (command, environment/device, result):
+  - `php artisan test` — 146 passed, 839 assertions; new tests assert one async dispatch per action, the busy-state rendering (`loading`/`disabled` props, progress row, pending bubble) and that provider messages survive the background hop; they fail before the change.
+  - Emulator `Pixel_9a` (API 37), debug build against a fake provider that waits 6 s: screenshots 2 s after each tap show the busy states; replies arrive via `finished()` (session saved, thread rendered, field cleared); with the fake server stopped, Settings → Test showed FixIt's own "could not be reached…" message from the background task.
+  - Physical ZTE 8050, real Anthropic key (Claude Opus 5.5): Test, photo diagnosis and a follow-up — progress shows immediately and all completed (reported by the user on 2026-10-29).
+- Not verified: leaving the screen while a task runs (NativePHP scopes the callback to the component and drops it if the screen is gone; the reply is then lost, not saved).
+- Next executable action: T20 — structured JSON diagnosis and token/cache logging.
+
 ### 2026-10-29 — T22 Safety filter blocked ordinary charging advice
-- Branch/PR: `task/t22-safety-false-positives` (PR pending), from `main` after PR #26 (independent of T21 / PR #27).
+- Branch/PR: `task/t22-safety-false-positives` (PR #28), from `main` after PR #26 (independent of T21 / PR #27).
 - Changed files: `app/Services/Safety/SafetyFilter.php`; `tests/Unit/Services/Safety/SafetyFilterTest.php`; `docs/STATUS.md`, `docs/TASKS.md`.
 - Problem: a photo of a phone with a cable plus "phone is not charging" was replaced by the block message on the ZTE (Claude Opus 5.5). The filter stored and logged nothing about why.
 - Root cause, found in three rounds on the device:
@@ -366,7 +380,7 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
   - `vendor/bin/pint --test` on changed files — passed.
   - Physical ZTE 8050, real Anthropic key (Claude Opus 5.5), same phone-with-cable photo and "phone is not charging": blocked on `main` and twice during the fix (log reasons above); with the final build an 807-character answer was stored, status `awaiting_follow_up`, no block logged (2026-10-29 10:56).
 - Not verified: other appliance categories against real model output (the rules are still keyword-based; new false positives will show their matched words in debug logs).
-- Next executable action: merge PRs #27 and this one; then T20.
+- Next executable action: merge PR #28; then T20.
 
 ## Handoff entry template
 
