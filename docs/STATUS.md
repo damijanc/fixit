@@ -9,7 +9,8 @@ Updated: 2026-10-28
 - Active branch: `main` (T13 merged as IMPLEMENTED in PR #18; real-key and physical-device smoke tests pending).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 126 tests, 678 assertions (T17 branch, includes T16).
+- Host test suite: VERIFIED — 132 tests, 740 assertions (T18 branch, includes T16/T17).
+- Diagnosis text fields (T18): **VERIFIED** on `fix/diagnosis-input-dropped-chars` (PR #25) — symptoms and follow-up fields no longer drop characters (no echo of typed text); emulator fake-provider check plus hand typing on the ZTE 8050.
 - API key field (T16): **VERIFIED**, merged in PR #23 — the key field no longer drops characters (live-sync echo race in NativePHP's text input); emulator fake-provider check plus real Hugging Face Test connection on the ZTE 8050.
 - Hugging Face photo diagnosis (T17): **VERIFIED on the ZTE 8050** with a real token on `fix/vision-photo-downscale` (PR #24) — Hugging Face requests are routed to `deepinfra` because the router's default pick (novita) returned 503 for full-size phone photos; photo errors are shown next to the Send button.
 - Multi-provider AI (T13): **IMPLEMENTED + emulator fake-provider smoke** — DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI are selectable; one encrypted provider/model/key selection; Symfony AI generic/HF/Anthropic/OpenAI bridges. Host tests cover platform construction, image payloads, migration, provider errors and no key cross-use. Emulator `Pixel_9a`: Settings selection, one-key save and Test connection passed for DeepSeek, OpenRouter and Hugging Face against the local fake provider; Hugging Face vision + multi-turn follow-up passed. Real provider keys and a physical device were not available.
@@ -310,6 +311,22 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
 - Not verified: the visible error box on a device; the other two HF models through deepinfra with a photo; photo upload cost (full-size images use more tokens than needed).
 - Blockers/decisions: images are still sent at full size because the Android PHP runtime has no GD; reducing size needs a native resize (camera/plugin side) and is a separate task. The UI also feels unresponsive while a request runs (reported by the user; deferred).
 - Next executable action: merge T16 and T17, then fix the symptoms/follow-up fields that still drop characters.
+
+### 2026-10-29 — T18 Symptoms and follow-up fields drop characters
+- Branch/PR: `fix/diagnosis-input-dropped-chars` (PR #25), from `main` after PRs #23/#24.
+- Changed files: `app/NativeComponents/Diagnosis.php` (`$symptomsInitial`); `resources/views/native/diagnosis.blade.php` (both fields bound without `native:model`); `tests/Feature/DiagnosisTest.php`; `docs/STATUS.md`, `docs/TASKS.md`.
+- Problem: same live-sync echo race as T16 (see that entry). On `main`, `main_build_Ab12_cd34XYZ_9qW_Lm56` typed into the symptoms field reached the provider as `main_uild_A12cd34XYZ_9qWLm56`.
+- Fix: the fields keep live change events (`_change="__syncProperty(...)"`, `sync-mode="live"`), so Send always sees the latest text, but their `value` is no longer the typed property: symptoms show `$symptomsInitial` (set on resume), follow-up shows `""`. PHP therefore never pushes stale text back. Clearing relies on remounting: discarding the photo removes the symptoms card; a successful follow-up adds turns above the composer, which changes the field's positional node id, and NativePHP's `key(node.id)` gives it fresh empty state. A failed follow-up keeps the same id and the typed text.
+- Rejected: debounce (T16's fix) — Send right after typing would lose the last characters. `native:key` with a reset counter — corrupted the Android layout after the photo send (title showed the symptoms text, photo and reply missing; keyed hashed ids vs positional ids).
+- Verified (command, environment/device, result):
+  - Emulator `Pixel_9a` (API 37), debug builds against the fake provider (`FIXIT_AI_HUGGINGFACE_BASE_URL=http://10.0.2.2:8099`) logging the user text; emulator camera photo; text typed with `adb shell input text`, Send tapped 0.3 s later.
+  - `main`: symptoms lost 4 characters (above); layout correct.
+  - This branch: symptoms `fix_build_Ab12_cd34XYZ_9qW_Lm56` sent exactly; follow-ups `answer1_…` and `answer2_light_on_Ab12_cd34XYZ_9qW_Lm56` sent exactly; field empty after each send; layout correct (screenshot checked).
+  - Send tapped in the same millisecond as the last keystroke (no gap) lost only the final character: the tap event can overtake the last change event. Not reachable by a finger.
+  - `php artisan test` — 132 passed, 740 assertions; three new tests fail on `main`.
+  - Physical ZTE 8050 (Android 13), debug build of this branch, real Hugging Face token, Gboard: symptoms and several follow-up answers typed by hand all arrived complete; the answer field cleared after each send (reported by the user on 2026-10-29).
+- Not verified: Gboard autocorrect replacing a whole word was not checked separately.
+- Next executable action: merge PR #25; then T19 (the UI feels unresponsive while a request runs).
 
 ## Handoff entry template
 

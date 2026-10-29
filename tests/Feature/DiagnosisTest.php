@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use App\Models\RepairSession;
 use App\Services\AI\ModelGateway;
+use App\Services\Repair\RepairSessionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Native\Mobile\Testing\Native;
+use Native\Mobile\Testing\TestableComponent;
 use Symfony\AI\Platform\Exception\ServerException;
 use Symfony\AI\Platform\Test\MockPlatformFactory;
 use Tests\Support\TestGateway;
@@ -227,4 +229,130 @@ it('blocks unsafe follow-up guidance too', function () {
         ->tap('send-follow-up-button')
         ->assertSee('Safety filter blocked unsafe guidance')
         ->assertDontSee('touch the mains wiring');
+});
+
+/**
+ * The rendered text-input node for a ref, so tests can compare the pushed
+ * value and the node id across frames.
+ *
+ * @return array<string, mixed>
+ */
+function textInputNode(TestableComponent $screen, string $ref): array
+{
+    $found = [];
+
+    $screen->assertElement('outlined_text_input', function (array $node) use ($ref, &$found): bool {
+        if (($node['ref'] ?? null) !== $ref) {
+            return false;
+        }
+
+        $found = $node;
+
+        return true;
+    });
+
+    return $found;
+}
+
+it('does not push typed symptoms back into the field', function () {
+    // Live native:model echoed every keystroke; a stale echo overwrote newer
+    // native text and dropped characters.
+    $screen = Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->input('symptoms-input', 'no water comes out')
+        ->assertSet('symptoms', 'no water comes out');
+
+    expect(textInputNode($screen, 'symptoms-input')['props']['value'] ?? '')->toBe('');
+});
+
+it('does not push a typed follow-up answer back into the field', function () {
+    app()->instance(ModelGateway::class, TestGateway::make(
+        MockPlatformFactory::createPlatform('Vision result: I see a test object.'),
+    ));
+
+    $screen = Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->tap('analyze-photo-button')
+        ->input('follow-up-input', 'the light is on')
+        ->assertSet('followUpAnswer', 'the light is on');
+
+    expect(textInputNode($screen, 'follow-up-input')['props']['value'] ?? '')->toBe('');
+});
+
+it('sends the typed follow-up answer and remounts the field to clear it', function () {
+    app()->instance(ModelGateway::class, TestGateway::make(
+        MockPlatformFactory::createPlatform(static function ($model, $input, $options): string {
+            return str_contains((string) json_encode($input), 'the light is on')
+                ? 'Follow-up result: check the pump.'
+                : 'Vision result: I see a test object.';
+        }),
+    ));
+
+    $screen = Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->tap('analyze-photo-button');
+
+    $before = textInputNode($screen, 'follow-up-input')['id'];
+
+    $screen->input('follow-up-input', 'the light is on')
+        ->tap('send-follow-up-button')
+        ->assertSee('Follow-up result: check the pump.')
+        ->assertSet('followUpAnswer', '');
+
+    // A new node id gives the native field fresh, empty state.
+    expect(textInputNode($screen, 'follow-up-input')['id'])->not->toBe($before);
+});
+
+it('unmounts the symptoms field when the photo is discarded', function () {
+    $temporaryBase = tempnam(sys_get_temp_dir(), 'fixit-photo-');
+    $temporaryPhoto = $temporaryBase.'.jpg';
+    copy(base_path('tests/Fixtures/vision-photo.jpg'), $temporaryPhoto);
+    @unlink($temporaryBase);
+
+    // The field is gone for a frame, so the next photo mounts an empty one.
+    Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', $temporaryPhoto, 'image/jpeg')
+        ->input('symptoms-input', 'kettle does not heat')
+        ->tap('discard-photo-button')
+        ->assertSet('symptoms', '')
+        ->assertSet('symptomsInitial', '')
+        ->assertMissingElement('outlined_text_input', fn (array $node): bool => ($node['ref'] ?? null) === 'symptoms-input');
+});
+
+it('keeps a failed follow-up answer in the field', function () {
+    $fail = false;
+    app()->instance(ModelGateway::class, TestGateway::make(
+        MockPlatformFactory::createPlatform(static function () use (&$fail): string {
+            if ($fail) {
+                throw new ServerException(503, 'internal server error');
+            }
+
+            return 'Vision result: I see a test object.';
+        }),
+    ));
+
+    $screen = Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->tap('analyze-photo-button');
+
+    $before = textInputNode($screen, 'follow-up-input')['id'];
+    $fail = true;
+
+    // Same node id: the native field keeps the typed text for a retry.
+    $screen->input('follow-up-input', 'the light is on')
+        ->tap('send-follow-up-button')
+        ->assertSee('unavailable (HTTP 503)')
+        ->assertSet('followUpAnswer', 'the light is on');
+
+    expect(textInputNode($screen, 'follow-up-input')['id'])->toBe($before);
+});
+
+it('fills the symptoms field from a resumed session', function () {
+    $session = app(RepairSessionService::class)
+        ->startWithPhoto(base_path('tests/Fixtures/vision-photo.jpg'), 'kettle does not heat');
+
+    $screen = Native::visit('/diagnosis/'.$session->id)
+        ->assertSet('symptoms', 'kettle does not heat');
+
+    expect(textInputNode($screen, 'symptoms-input')['props']['value'] ?? '')->toBe('kettle does not heat');
 });
