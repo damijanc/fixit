@@ -16,7 +16,7 @@ return [
     | add only models verified to accept images.
     |
     */
-    'default_provider' => env('FIXIT_AI_DEFAULT_PROVIDER', 'deepseek'),
+    'default_provider' => env('FIXIT_AI_DEFAULT_PROVIDER', 'anthropic'),
 
     'providers' => [
         'deepseek' => [

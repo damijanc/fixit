@@ -6,7 +6,8 @@ Updated: 2026-10-29
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `main` (T13 merged as IMPLEMENTED in PR #18; real-key and physical-device smoke tests pending).
+- Active branch: `release/v1.0.0` (judge release prep: Anthropic default provider, refreshed judge guide, production env for release builds).
+- Default provider: **Anthropic / Claude Opus 5.5** for fresh installs (was DeepSeek); a legacy DeepSeek-only key is still migrated to DeepSeek.
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
 - Host test suite: VERIFIED — 213 tests, 1044 assertions (T23 branch, includes T16–T22).
@@ -18,7 +19,7 @@ Updated: 2026-10-29
 - Diagnosis text fields (T18): **VERIFIED**, merged in PR #25 — symptoms and follow-up fields no longer drop characters (no echo of typed text); emulator fake-provider check plus hand typing on the ZTE 8050.
 - API key field (T16): **VERIFIED**, merged in PR #23 — the key field no longer drops characters (live-sync echo race in NativePHP's text input); emulator fake-provider check plus real Hugging Face Test connection on the ZTE 8050.
 - Hugging Face photo diagnosis (T17): **VERIFIED on the ZTE 8050** with a real token, merged in PR #24 — Hugging Face requests are routed to `deepinfra` because the router's default pick (novita) returned 503 for full-size phone photos; photo errors are shown next to the Send button.
-- Multi-provider AI (T13): **IMPLEMENTED + emulator fake-provider smoke** — DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI are selectable; one encrypted provider/model/key selection; Symfony AI generic/HF/Anthropic/OpenAI bridges. Host tests cover platform construction, image payloads, migration, provider errors and no key cross-use. Emulator `Pixel_9a`: Settings selection, one-key save and Test connection passed for DeepSeek, OpenRouter and Hugging Face against the local fake provider; Hugging Face vision + multi-turn follow-up passed. Real provider keys and a physical device were not available.
+- Multi-provider AI (T13): **VERIFIED for Anthropic and Hugging Face on the ZTE 8050 with real keys** (2026-10-29; DeepSeek, OpenRouter and OpenAI not re-run with real keys after T13) — DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI are selectable; one encrypted provider/model/key selection; Symfony AI generic/HF/Anthropic/OpenAI bridges. Host tests cover platform construction, image payloads, migration, provider errors and no key cross-use. Emulator `Pixel_9a`: Settings selection, one-key save and Test connection passed for DeepSeek, OpenRouter and Hugging Face against the local fake provider; Hugging Face vision + multi-turn follow-up passed. Real provider keys and a physical device were not available.
 - Debug APK build and launch: VERIFIED on an Android **emulator** (`Pixel_9a`, Android 17 / API 37) and on a physical **ZTE 8050** (Android 13 / API 33, arm64, serial `LZV50SDEDC3001352`), package `com.fixit.app`.
 - Symfony AI in embedded Android PHP: **VERIFIED with a real DeepSeek call** on the physical ZTE 8050 — `deepseek-flash` returned `FixIt AI connectivity OK`.
 - Camera capture: **VERIFIED** on emulator and physical ZTE 8050 — system camera, JPEG in app-private storage, path returned to PHP, preview rendered.
@@ -27,8 +28,8 @@ Updated: 2026-10-29
 - Multi-turn follow-up: **VERIFIED** on emulator — prior photo prompt + assistant result + user answer sent as a conversation; response persisted and restored after relaunch. Evidence: `docs/evidence/2026-10-27-emulator-followup-restored.png`.
 - Deterministic safety filtering: **VERIFIED** by unit + UI tests — hazardous instructions are blocked before display; mains/gas mentions escalate; blocked raw text is not stored.
 - Screens: **VERIFIED on emulator** — Home landing, Diagnosis, Result and History with navigation and saved-session lists. Evidence: `docs/evidence/2026-10-27-emulator-home-screens.png`, `...-history.png`, `...-result-screen.png`.
-- UI polish (T14): **IMPLEMENTED** on `task/t14-ui-polish` — chat-style diagnosis thread, camera-first Home, cleaner Settings; host tests and emulator screens checked; real-key and physical-device pass pending.
-- Symfony AI clean-up (T15): **IMPLEMENTED** on `task/t15-symfony-ai-refactor` — provider errors (401/404/429/5xx) now show the correct message; one Symfony AI `Agent` per request via `AgentFactory` + `SystemPromptInputProcessor`; prompts and follow-up history moved out of the Diagnosis component. Host tests pass; device pass pending.
+- UI polish (T14): **VERIFIED** — chat-style diagnosis thread, camera-first Home, cleaner Settings; host tests, emulator screens and the ZTE 8050 sessions of 2026-10-29.
+- Symfony AI clean-up (T15): **VERIFIED** — provider errors (401/404/429/5xx) show the correct message (real 401 and 503 seen on the ZTE); one Symfony AI `Agent` per request via `AgentFactory` + `SystemPromptInputProcessor`; prompts and follow-up history out of the Diagnosis component.
 - Android release build: **local signed release APK VERIFIED** — 76.77 MB, `apksigner` certificate checked, installed and launched on the `Pixel_9a` emulator. Built with an ephemeral local keystore.
 - Android CI: **VERIFIED with stable signing** — run 40652416378 (main, 2026-10-28) built and uploaded a signed release APK after a transient NativePHP binary-download retry. `apksigner` shows `CN=FixIt Release, OU=Mobile, O=FixIt, L=Berlin, ST=Berlin, C=DE`.
 - Release publishing: **VERIFIED on tag `v0.0.5-ci-test`** — GitHub Actions run 40659466606 built the signed APK, verified it, created a GitHub Release and attached `app-release.apk` + SHA-256. Test tag/release removed afterwards.
@@ -40,10 +41,10 @@ Updated: 2026-10-29
 - CI: PHP tests + tag-driven Android release VERIFIED on GitHub Actions.
 
 ## Next step
-T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSeek, OpenRouter (Claude and GPT) and Hugging Face, then repeat on the ZTE 8050; direct Anthropic/OpenAI if keys are available. The emulator fake-provider pass and host suite are complete. After that, install the release APK on the ZTE and record the 90-second demo.
+T11 release: merge `release/v1.0.0`, tag `v1.0.0`, check the CI release, install the release APK on the ZTE 8050 (production env, Anthropic default), then record the demo video. Optional: real-key runs for DeepSeek, OpenRouter and OpenAI.
 
 ## Known risks
-- Real-provider smoke tests are pending; provider/model IDs were checked against live catalogs and Symfony AI 0.15 catalogs, but account access, regional availability and vision pricing can differ.
+- Real-key runs after T13 cover Anthropic and Hugging Face only; provider/model IDs were checked against live catalogs and Symfony AI 0.15 catalogs, but account access, regional availability and vision pricing can differ.
 - Tag builds fail without the stable signing secrets; the configured certificate is `CN=FixIt Release`.
 - Physical-device install of the signed release APK is not yet verified.
 - The official NativePHP SecureStorage plugin requires authenticated plugin access; ADR 0003/0004 use encrypted file storage with the Keystore-managed `APP_KEY` instead.
@@ -417,6 +418,15 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
   - Physical ZTE 8050, Hugging Face (`Qwen/Qwen3-VL-30B-A3B-Instruct` via `deepinfra`), portrait photo of a laptop + "internet doesn't work": `Photo downscaled` 2,646,617 → 194,940 bytes (1195×1568); reply after ~16 s, 1926 input / 40 output tokens, no 503; plain-text answer identified the MacBook and asked about Wi-Fi (2026-10-29 15:22 UTC).
 - Not verified: a landscape photo; very low-memory devices (OutOfMemoryError is caught and the original kept).
 - Next executable action: merge; then a cache-read check (second follow-up) or T12.
+
+### 2026-10-29 — T11 v1.0.0 release prep
+- Branch/PR: `release/v1.0.0`.
+- Changed files: `config/ai.php`, `.env.example` (default provider `anthropic`); `app/Services/AI/Provider/ProviderCatalog.php` (fallback default); `app/Services/AI/Provider/EncryptedFileProviderSettingsStore.php` (legacy `ai-key.enc` always migrates to DeepSeek); `tests/Unit/Services/AI/Provider/{ProviderCatalogTest,EncryptedFileProviderSettingsStoreTest}.php`; `.github/workflows/android.yml` (release `.env`: `APP_ENV=production`, `APP_DEBUG=false`, `LOG_LEVEL=info`; non-tag version `0.0.0-ci<run>`); `docs/JUDGE_GUIDE.md` (rewritten for v1.0.0: Anthropic default, demo with the Claude card, what Claude does, current model table, button labels checked against the views); `docs/STATUS.md`, `docs/TASKS.md` (T13–T15 statuses from the 2026-10-29 ZTE runs).
+- Why: no GitHub Release existed (the CI test release was removed); the judge guide described an unpublished DeepSeek-only build; release builds shipped with `APP_DEBUG=true`.
+- Decision (user, 2026-10-29): fresh installs preselect Anthropic / Claude Opus 5.5; version `v1.0.0`.
+- Verified: `php artisan test` — 213 passed, 1045 assertions (Anthropic default; legacy DeepSeek key still migrates to DeepSeek while the default is Anthropic). `vendor/bin/pint --test` on changed PHP files — passed.
+- Not verified yet: the release workflow with the production env; the release APK on the ZTE 8050.
+- Next executable action: merge, tag `v1.0.0`, check the release run, install `app-release.apk` on the ZTE.
 
 ## Handoff entry template
 

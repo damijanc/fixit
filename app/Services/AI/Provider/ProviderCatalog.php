@@ -67,7 +67,7 @@ final class ProviderCatalog
 
         return new self(
             $providers,
-            (string) ($config['default_provider'] ?? 'deepseek'),
+            (string) ($config['default_provider'] ?? 'anthropic'),
         );
     }
 

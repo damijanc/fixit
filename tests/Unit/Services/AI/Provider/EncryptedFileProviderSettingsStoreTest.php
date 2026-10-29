@@ -52,15 +52,17 @@ it('never writes the plaintext provider key to disk', function () {
     expect(fileperms($this->path) & 0777)->toBe(0600);
 });
 
-it('returns the configured DeepSeek default when nothing is saved', function () {
+it('returns the configured Anthropic default when nothing is saved', function () {
     $settings = $this->store->get();
 
-    expect($settings->providerId)->toBe('deepseek');
-    expect($settings->modelId)->toBe('deepseek-flash');
+    expect($settings->providerId)->toBe('anthropic');
+    expect($settings->modelId)->toBe('claude-opus-5-5');
     expect($settings->apiKey)->toBeNull();
 });
 
-it('migrates the legacy DeepSeek key into the new encrypted settings file', function () {
+it('migrates the legacy DeepSeek key to DeepSeek, not the default provider', function () {
+    expect($this->catalog->defaultProviderId())->not->toBe('deepseek');
+
     file_put_contents($this->legacyPath, Crypt::encryptString('sk-legacy-deepseek-key'));
 
     $settings = $this->store->get();
@@ -109,7 +111,7 @@ it('returns defaults for an unreadable ciphertext file', function () {
 
     $settings = $this->store->get();
 
-    expect($settings->providerId)->toBe('deepseek');
+    expect($settings->providerId)->toBe('anthropic');
     expect($settings->apiKey)->toBeNull();
 });
 
@@ -118,6 +120,6 @@ it('ignores an unreadable legacy key file', function () {
 
     $settings = $this->store->get();
 
-    expect($settings->providerId)->toBe('deepseek');
+    expect($settings->providerId)->toBe('anthropic');
     expect($settings->apiKey)->toBeNull();
 });
