@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Fixit\PhotoResize\PhotoResizeServiceProvider;
 use Illuminate\Support\ServiceProvider;
 use Native\Mobile\Providers\BrowserServiceProvider;
 use Native\Mobile\Providers\CameraServiceProvider;
@@ -40,6 +41,7 @@ class NativeServiceProvider extends ServiceProvider
             NativeUIServiceProvider::class,
             BrowserServiceProvider::class,
             CameraServiceProvider::class,
+            PhotoResizeServiceProvider::class,
         ];
     }
 }

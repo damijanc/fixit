@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "21e7db4f9713a29873b90b0776975e18",
+    "content-hash": "709a9904d8e6c74b10bc07692eef9caf",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -859,6 +859,47 @@
                 "source": "https://github.com/igorw/evenement/tree/v3.0.2"
             },
             "time": "2023-08-08T05:53:35+00:00"
+        },
+        {
+            "name": "fixit/photo-resize",
+            "version": "dev-task/t23-photo-downscale",
+            "dist": {
+                "type": "path",
+                "url": "packages/photo-resize",
+                "reference": "8532c33b575230d69cb327d4cd47a6ac62ceac99"
+            },
+            "require": {
+                "nativephp/mobile": "^4.0",
+                "php": "^8.3"
+            },
+            "type": "nativephp-plugin",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Fixit\\PhotoResize\\PhotoResizeServiceProvider"
+                    ]
+                },
+                "nativephp": {
+                    "manifest": "nativephp.json"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Fixit\\PhotoResize\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Damijan Cavar"
+                }
+            ],
+            "description": "Downscales captured photos on Android before they are uploaded",
+            "transport-options": {
+                "relative": true
+            }
         },
         {
             "name": "fruitcake/php-cors",
@@ -12198,7 +12239,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "fixit/photo-resize": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

@@ -31,6 +31,19 @@ it('shows the captured photo path and preview', function () {
             && ($node['props']['src'] ?? null) === '/data/user/0/com.fixit.app/no_backup/Camera/fixit-test.jpg');
 });
 
+it('downscales the captured photo before it is saved', function () {
+    $page = Native::visit('/diagnosis');
+    $page->bridge()->respondTo('PhotoResize.Downscale', fn (array $params): array => [
+        'path' => $params['path'], 'width' => 1568, 'height' => 1176, 'bytes' => 245_000, 'resized' => true,
+    ]);
+
+    $page->call('handlePhotoTaken', '/data/user/0/com.fixit.app/no_backup/Camera/fixit-test.jpg', 'image/jpeg')
+        ->assertCalled('PhotoResize.Downscale', fn (array $params): bool => $params['path'] === '/data/user/0/com.fixit.app/no_backup/Camera/fixit-test.jpg')
+        ->assertSee('Photo captured: image/jpeg, fixit-test.jpg');
+
+    expect(RepairSession::query()->sole()->photo_path)->toBe('/data/user/0/com.fixit.app/no_backup/Camera/fixit-test.jpg');
+});
+
 it('explains when camera permission is denied', function () {
     Native::visit('/diagnosis')
         ->call('handleCameraPermissionDenied', 'photo')

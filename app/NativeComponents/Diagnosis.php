@@ -13,6 +13,8 @@ use App\Services\Diagnosis\DiagnosisReply;
 use App\Services\Repair\RepairSessionService;
 use App\Services\Safety\SafetyFilter;
 use App\Services\Safety\SafetyResult;
+use Fixit\PhotoResize\PhotoResize;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Native\Mobile\Attributes\On;
 use Native\Mobile\Edge\NativeComponent;
@@ -154,6 +156,8 @@ class Diagnosis extends NativeComponent
     #[On(PhotoTaken::class)]
     public function handlePhotoTaken(string $path, string $mimeType = 'image/jpeg'): void
     {
+        self::shrinkPhoto($path);
+
         $this->photoPath = $path;
         $this->cameraStatus = "Photo captured: {$mimeType}, ".basename($path);
         $this->visionStatus = '';
@@ -283,6 +287,31 @@ class Diagnosis extends NativeComponent
         $this->followUpResult = '';
         $this->turns = app(RepairSessionService::class)->followUpTurns($session);
         $this->sessionNotice = 'Repair session saved locally.';
+    }
+
+    /**
+     * Phone photos are several MB; providers time out or reject them (503 on
+     * the Hugging Face router). The native plugin rewrites the file in place;
+     * if it is unavailable or fails, the original photo is used.
+     */
+    private static function shrinkPhoto(string $path): void
+    {
+        $before = is_file($path) ? (int) filesize($path) : 0;
+        $result = app(PhotoResize::class)->downscale($path);
+
+        if ($result === null) {
+            Log::warning('Photo not downscaled', ['bytes' => $before]);
+
+            return;
+        }
+
+        Log::info('Photo downscaled', [
+            'bytes_before' => $before,
+            'bytes_after' => $result['bytes'],
+            'width' => $result['width'],
+            'height' => $result['height'],
+            'resized' => $result['resized'],
+        ]);
     }
 
     /**
