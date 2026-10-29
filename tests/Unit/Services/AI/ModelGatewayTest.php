@@ -6,6 +6,7 @@ use App\Services\AI\AiRequestFailedException;
 use App\Services\AI\MissingApiKeyException;
 use App\Services\AI\Provider\ProviderCatalog;
 use App\Services\AI\UnsupportedModelCapabilityException;
+use App\Services\Diagnosis\DiagnosisReply;
 use Illuminate\Support\Facades\Log;
 use Symfony\AI\Platform\Exception\AuthenticationException;
 use Symfony\AI\Platform\Exception\BadRequestException;
@@ -249,4 +250,18 @@ it('builds the platform for the selected provider with only that provider key', 
     expect($factory->calls)->toBe([
         ['provider' => 'openrouter', 'key' => 'or-key-12345678'],
     ]);
+});
+
+it('does not send a schema to a model without structured outputs', function () {
+    $client = new MockModelClient('The pump may be blocked.');
+
+    $reply = TestGateway::make(recordingPlatform($client))->askWithImage(
+        'What is in this photo?',
+        base_path('tests/Fixtures/vision-photo.jpg'),
+        null,
+        DiagnosisReply::schema(),
+    );
+
+    expect($reply)->toBe('The pump may be blocked.')
+        ->and($client->getCalls()[0]['options'])->not->toHaveKey('response_format');
 });

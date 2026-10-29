@@ -9,8 +9,10 @@ use App\Services\AI\AiException;
 use App\Services\AI\ModelGateway;
 use App\Services\Diagnosis\ConversationBuilder;
 use App\Services\Diagnosis\DiagnosisPrompts;
+use App\Services\Diagnosis\DiagnosisReply;
 use App\Services\Repair\RepairSessionService;
 use App\Services\Safety\SafetyFilter;
+use App\Services\Safety\SafetyResult;
 use Illuminate\View\View;
 use Native\Mobile\Attributes\On;
 use Native\Mobile\Edge\NativeComponent;
@@ -230,14 +232,16 @@ class Diagnosis extends NativeComponent
         $this->safetyNotice = '';
 
         $prompts = app(DiagnosisPrompts::class);
+        $structured = app(ModelGateway::class)->supportsStructuredOutput();
         $prompt = $prompts->photoRequest($this->symptoms);
-        $system = $prompts->photoSystem();
+        $system = $prompts->photoSystem($structured);
+        $schema = $structured ? DiagnosisReply::schema() : null;
         $photoPath = $this->photoPath;
 
         // The model call runs on a background PHP thread so the busy state
         // renders immediately; the UI thread would otherwise block until the
         // reply arrives and the tap would look like it did nothing.
-        $this->async(static fn (): string => app(ModelGateway::class)->askWithImage($prompt, $photoPath, $system))
+        $this->async(static fn (): string => app(ModelGateway::class)->askWithImage($prompt, $photoPath, $system, $schema))
             ->timeout(self::aiTaskTimeout())
             ->finished(fn (string $result) => $this->photoAnalyzed($prompt, $result))
             ->failed(function (\Throwable $exception): void {
@@ -263,7 +267,7 @@ class Diagnosis extends NativeComponent
             $session->forceFill(['symptoms' => trim($this->symptoms)])->save();
         }
 
-        $assessment = app(SafetyFilter::class)->assess($result);
+        $assessment = self::assessReply($result);
         $status = $assessment->blocked || $assessment->escalated ? 'escalated' : 'awaiting_follow_up';
 
         app(RepairSessionService::class)->recordVisionResult($session, $prompt, $assessment->text, $status);
@@ -271,7 +275,7 @@ class Diagnosis extends NativeComponent
         $this->visionResult = $assessment->text;
         $this->safetyNotice = $assessment->blocked
             ? 'Safety filter blocked unsafe guidance. This needs a qualified professional.'
-            : ($assessment->escalated ? 'Safety note: mains or gas risk. Use a qualified professional.' : '');
+            : ($assessment->escalated ? 'Safety note: mains, gas or battery risk. Use a qualified professional.' : '');
         $this->visionStatus = "{$this->providerName} response received. Check every suggestion before acting on it.";
         $this->followUpAnswer = '';
         $this->followUpInitial = '';
@@ -279,6 +283,18 @@ class Diagnosis extends NativeComponent
         $this->followUpResult = '';
         $this->turns = app(RepairSessionService::class)->followUpTurns($session);
         $this->sessionNotice = 'Repair session saved locally.';
+    }
+
+    /**
+     * Structured replies (Claude) are checked field by field; free text as a
+     * whole. Either way the stored text is what SafetyFilter returns.
+     */
+    private static function assessReply(string $result): SafetyResult
+    {
+        $reply = DiagnosisReply::fromJson($result);
+        $filter = app(SafetyFilter::class);
+
+        return $reply !== null ? $filter->assessDiagnosis($reply) : $filter->assess($result);
     }
 
     /**
@@ -319,13 +335,16 @@ class Diagnosis extends NativeComponent
         $this->followUpStatus = '';
 
         $sessionId = $session->id;
-        $system = app(DiagnosisPrompts::class)->followUpSystem();
+        $structured = app(ModelGateway::class)->supportsStructuredOutput();
+        $system = app(DiagnosisPrompts::class)->followUpSystem($structured);
+        $schema = $structured ? DiagnosisReply::schema() : null;
 
         // Background thread, like analyzePhoto(); the session is reloaded there
         // because models do not cross the thread boundary.
         $this->async(static fn (): string => app(ModelGateway::class)->continueConversation(
             app(ConversationBuilder::class)->forFollowUp(RepairSession::query()->findOrFail($sessionId), $answer),
             $system,
+            $schema,
         ))
             ->timeout(self::aiTaskTimeout())
             ->finished(fn (string $result) => $this->followUpAnswered($answer, $result))
@@ -351,7 +370,7 @@ class Diagnosis extends NativeComponent
             return;
         }
 
-        $assessment = app(SafetyFilter::class)->assess($result);
+        $assessment = self::assessReply($result);
         $status = $assessment->blocked || $assessment->escalated ? 'escalated' : 'awaiting_follow_up';
 
         app(RepairSessionService::class)->recordFollowUp($session, $answer, $assessment->text, $status);
@@ -362,7 +381,7 @@ class Diagnosis extends NativeComponent
         $this->turns = app(RepairSessionService::class)->followUpTurns($session);
         $this->safetyNotice = $assessment->blocked
             ? 'Safety filter blocked unsafe guidance. This needs a qualified professional.'
-            : ($assessment->escalated ? 'Safety note: mains or gas risk. Use a qualified professional.' : '');
+            : ($assessment->escalated ? 'Safety note: mains, gas or battery risk. Use a qualified professional.' : '');
         $this->followUpStatus = 'Follow-up saved locally.';
     }
 

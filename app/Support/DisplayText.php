@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Services\Diagnosis\DiagnosisReply;
+
 /**
  * Presentation helpers for native views. Native text elements render raw
  * strings, so Markdown emitted by models would show up as literal symbols.
@@ -12,6 +14,12 @@ final class DisplayText
 {
     public static function plain(string $text): string
     {
+        $reply = DiagnosisReply::fromJson($text);
+
+        if ($reply !== null) {
+            return $reply->plainText();
+        }
+
         $text = preg_replace('/^\s{0,3}#{1,6}\s+/m', '', $text) ?? $text;
         $text = preg_replace('/^\s*[-*+]\s+/m', '• ', $text) ?? $text;
         $text = preg_replace('/(\*\*|__)(.+?)\1/s', '$2', $text) ?? $text;

@@ -1,10 +1,13 @@
 @php
+    $reply = $role === 'assistant' ? \App\Services\Diagnosis\DiagnosisReply::fromJson($text) : null;
     $lines = array_values(array_filter(
         preg_split('/\n+/', $role === 'user' ? trim($text) : \App\Support\DisplayText::plain($text)) ?: [],
         fn (string $line): bool => trim($line) !== '',
     ));
 @endphp
-@if ($role === 'user')
+@if ($reply !== null)
+    @include('native.partials.diagnosis-card', ['reply' => $reply, 'ref' => $ref])
+@elseif ($role === 'user')
     <row class="mt-3 w-full justify-end pl-12">
         <column ref="{{ $ref }}" class="gap-2 rounded-2xl rounded-br-md bg-theme-primary px-4 py-3">
             @foreach ($lines as $line)

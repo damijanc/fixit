@@ -89,21 +89,25 @@ return [
             // Current Claude models always think, and thinking shares max_tokens
             // with the answer: the bridge default of 1000 truncates replies.
             // Effort is set explicitly because the defaults differ per model.
+            // structured_output: diagnoses come back as JSON (DiagnosisReply).
             'models' => [
                 'claude-opus-5-5' => [
                     'label' => 'Claude Opus 5.5',
                     'vision' => true,
                     'options' => ['max_tokens' => 16000, 'output_config' => ['effort' => 'medium']],
+                    'structured_output' => true,
                 ],
                 'claude-sonnet-5-5' => [
                     'label' => 'Claude Sonnet 5.5',
                     'vision' => true,
                     'options' => ['max_tokens' => 16000, 'output_config' => ['effort' => 'medium']],
+                    'structured_output' => true,
                 ],
                 'claude-haiku-5-5' => [
                     'label' => 'Claude Haiku 5.5',
                     'vision' => true,
                     'options' => ['max_tokens' => 16000, 'output_config' => ['effort' => 'medium']],
+                    'structured_output' => true,
                 ],
             ],
         ],
