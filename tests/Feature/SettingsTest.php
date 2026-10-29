@@ -32,6 +32,17 @@ it('shows the default provider, model and no key initially', function () {
         ->assertSee('openai');
 });
 
+it('syncs the key field after typing pauses so echoes cannot drop characters', function () {
+    useProviderSettings();
+
+    // Live sync echoes every keystroke back from PHP; a stale echo replaced
+    // newer native text and dropped characters from pasted or typed keys.
+    Native::visit('/settings')
+        ->assertElement('outlined_text_input', fn (array $node) => ($node['ref'] ?? null) === 'api-key-input'
+            && ($node['props']['sync_mode'] ?? null) === 'debounce'
+            && ($node['props']['debounce_ms'] ?? 0) >= 300);
+});
+
 it('saves the provider key in secure storage and hides it from the UI', function () {
     $store = useProviderSettings();
 
