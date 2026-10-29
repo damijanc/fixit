@@ -36,6 +36,14 @@ class Diagnosis extends NativeComponent
 
     public string $symptoms = '';
 
+    /**
+     * Text the symptoms field shows when it is mounted (a resumed session).
+     * Typing updates $symptoms only, so PHP never echoes keystrokes back into
+     * the native field: a stale echo overwrote newer text and dropped
+     * characters. Discarding the photo unmounts the field, which clears it.
+     */
+    public string $symptomsInitial = '';
+
     public string $sessionId = '';
 
     public string $sessionNotice = '';
@@ -75,6 +83,7 @@ class Diagnosis extends NativeComponent
 
         $this->sessionId = $session->id;
         $this->symptoms = (string) ($session->symptoms ?? '');
+        $this->symptomsInitial = $this->symptoms;
         $this->visionResult = (string) ($session->summary ?? '');
 
         if (is_string($session->photo_path) && is_file($session->photo_path)) {
@@ -183,6 +192,7 @@ class Diagnosis extends NativeComponent
         $this->visionError = '';
         $this->visionResult = '';
         $this->symptoms = '';
+        $this->symptomsInitial = '';
         $this->sessionId = '';
         $this->sessionNotice = '';
         $this->followUpAnswer = '';

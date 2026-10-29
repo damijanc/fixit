@@ -98,7 +98,10 @@
                         label="What's wrong?"
                         placeholder="No water comes out, the pump hums"
                         multiline
-                        native:model="symptoms"
+                        {{-- No native:model: it echoes keystrokes back and drops characters. See Diagnosis::$symptomsInitial. --}}
+                        :value="$symptomsInitial"
+                        _change="__syncProperty('symptoms')"
+                        sync-mode="live"
                         a11y-label="Symptoms"
                     />
 
@@ -228,7 +231,10 @@
                 label="Your answer"
                 placeholder="The light turns on but there is no water"
                 multiline
-                native:model="followUpAnswer"
+                {{-- Typing syncs to $followUpAnswer without an echo. A sent answer adds turns above, so the field gets a new node id and remounts empty; a failed send keeps the text. --}}
+                value=""
+                _change="__syncProperty('followUpAnswer')"
+                sync-mode="live"
                 a11y-label="Follow-up answer"
             />
             <native:button
