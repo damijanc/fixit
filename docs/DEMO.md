@@ -25,6 +25,8 @@ Screen only. The voiceover is generated with a text-to-speech service (ElevenLab
 | 57–72 s | Settings → open the **Provider** list | Claude is the default, but Symfony AI runs inside the app, so the same flow works with DeepSeek, OpenRouter, Hugging Face or OpenAI. |
 | 72–90 s | Settings "How your key is stored" → Home → History | Bring your own key. It is encrypted on the device, and sessions stay local. No account, no backend. That's FixIt. |
 
+Generated voiceover (2026-10-29): ElevenLabs voice **Bella** (`hpp4J3VqNfWAUOO0d1Us`), model `eleven_multilingual_v2`, one MP3 per scene; scene 3 is written "Claude Opus five point five" for pronunciation. Scene lengths 6.4 / 4.8 / 3.9 / 7.2 / 10.8 / 7.5 / 8.5 / 7.8 s (57 s); each starts 0.5 s into its slot above. The audio files are not committed.
+
 Good card moments: a photo where Claude flags a **battery** risk shows the warning row; a phone + charger photo shows ordinary safe checks passing the filter.
 
 ## Record
