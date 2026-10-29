@@ -1,6 +1,6 @@
 # FixIt status
 
-Updated: 2026-10-28
+Updated: 2026-10-29
 
 ## Current state
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
@@ -9,7 +9,8 @@ Updated: 2026-10-28
 - Active branch: `main` (T13 merged as IMPLEMENTED in PR #18; real-key and physical-device smoke tests pending).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 187 tests, 935 assertions (T22 branch, includes T16–T21).
+- Host test suite: VERIFIED — 208 tests, 1031 assertions (T20 branch, includes T16–T22).
+- Claude showcase (T20): **VERIFIED on the ZTE 8050** on `task/t20-claude-showcase` — with Claude, the diagnosis is a strict JSON schema (`output_config.format`) rendered as a card (object, likely cause, confidence, numbered safe checks, professional warning, question); every field passes the safety rules and mains/gas/battery hazards escalate; token usage and prompt-cache writes/reads are logged per call.
 - Safety filter false positives (T22): **VERIFIED** on `task/t22-safety-false-positives` (PR #28) — phone-charging advice (protective case, other wall socket, battery-charging setting, "remove the case") no longer blocked; opening casings, mains work and protection bypasses stay blocked; blocks logged by rule id (plus matched words in debug builds); the blocked ZTE photo now gets an answer.
 - Busy feedback (T21): **VERIFIED**, merged in PR #27 — AI calls (photo, follow-up, Settings Test) run as NativePHP async tasks on a background PHP thread, so spinners, progress text and locked controls render immediately; emulator screenshots of each busy state plus a hand check with Claude on the ZTE 8050.
 - Anthropic / Claude (T19): **VERIFIED on the ZTE 8050** with a real key, merged in PR #26 — Claude Opus 5.5 (default), Sonnet 5.5 and Haiku 5.5; `max_tokens` 16000 and `effort: medium` per model; thinking replies and refusals handled; Test connection, photo diagnosis and follow-up passed.
@@ -381,6 +382,22 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
   - Physical ZTE 8050, real Anthropic key (Claude Opus 5.5), same phone-with-cable photo and "phone is not charging": blocked on `main` and twice during the fix (log reasons above); with the final build an 807-character answer was stored, status `awaiting_follow_up`, no block logged (2026-10-29 10:56).
 - Not verified: other appliance categories against real model output (the rules are still keyword-based; new false positives will show their matched words in debug logs).
 - Next executable action: merge PR #28; then T20.
+
+### 2026-10-29 — T20 Claude showcase: structured diagnosis and usage logging
+- Branch/PR: `task/t20-claude-showcase`, from `main` after PR #28.
+- Changed files: `app/Services/Diagnosis/DiagnosisReply.php` (new), `app/Services/Diagnosis/DiagnosisPrompts.php`, `app/Services/Safety/SafetyFilter.php`, `app/Services/AI/ModelGateway.php`, `app/Services/AI/Provider/ModelDefinition.php`, `app/Services/AI/Provider/ProviderCatalog.php`, `config/ai.php`, `app/NativeComponents/Diagnosis.php`, `app/Support/DisplayText.php`, `resources/views/native/partials/diagnosis-card.blade.php` (new), `resources/views/native/partials/message.blade.php`; tests `tests/Unit/Services/Diagnosis/DiagnosisReplyTest.php` (new), `tests/Unit/Services/AI/AnthropicGatewayTest.php`, `tests/Unit/Services/AI/ModelGatewayTest.php`, `tests/Feature/DiagnosisTest.php`; `docs/STATUS.md`, `docs/TASKS.md`.
+- Implemented:
+  - `DiagnosisReply`: strict schema (object, likely_cause, confidence low/medium/high, up to five safe_checks, hazard none/mains/gas/battery/other, needs_professional, question) and validated parsing. Models opt in with `structured_output` in `config/ai.php` (all three Claude models); `ModelGateway` then sends `response_format` → the Anthropic bridge's `output_config.format`. Other providers keep the plain-text prompts and filter.
+  - `SafetyFilter::assessDiagnosis()` checks the cause, every check and the question separately; any blocked part blocks the whole reply; a mains/gas/battery hazard, `needs_professional` or an escalating phrase sets the professional warning.
+  - Assistant messages that parse as a reply render as a card; history titles and plain-text views use `DisplayText::plain()`.
+  - `ModelGateway` logs `AI usage` with provider, model, input/output tokens, cache read and cache creation tokens for every call (Symfony AI's Anthropic bridge already sets the cache breakpoints).
+  - After the first device run: likely cause no longer bold, prompt asks for short fields, battery hazard escalates (the first card suggested checking for a swollen battery without a warning).
+- Verified (command, environment/device, result):
+  - `php artisan test` — 208 passed, 1031 assertions (schema, parsing, rejection of incomplete JSON, safety on structured replies incl. battery hazard, request body sent to the Anthropic bridge, no schema for non-structured models, usage log, card rendering in the Diagnosis component).
+  - Physical ZTE 8050, real Anthropic key, Claude Opus 5.5, MacBook photo + "battery is draining fast": card rendered with object, cause, confidence, five checks and a question; log `input_tokens 4, output_tokens 742, cache_creation_tokens 5607`.
+  - Same diagnosis, follow-up "it drains when laptop is on" with the final build: updated card (medium confidence, Activity Monitor / Chrome / brightness checks); log `output_tokens 539, cache_creation_tokens 1480, cache_read_tokens 0`.
+- Not verified: a cache **read** on the device. The follow-up uses a different system prompt and resends the history without the photo, so it cannot reuse the photo call's prefix; a second follow-up in the same diagnosis should read the 1480 cached tokens. Structured output on Sonnet/Haiku 5.5 was not run with a real key.
+- Next executable action: open the PR and merge; then shrink photos before upload (native Android code).
 
 ## Handoff entry template
 

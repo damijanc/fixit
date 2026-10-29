@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Safety;
 
+use App\Services\Diagnosis\DiagnosisReply;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -128,6 +129,33 @@ final class SafetyFilter
             blocked: false,
             escalated: false,
             text: $text,
+        );
+    }
+
+    /**
+     * Check a structured reply field by field, so one check never runs into
+     * the next. The model's own hazard and needs_professional flags can only
+     * add the professional notice; the keyword rules still decide blocking.
+     */
+    public function assessDiagnosis(DiagnosisReply $reply): SafetyResult
+    {
+        $escalated = in_array($reply->hazard, ['mains', 'gas', 'battery'], true) || $reply->needsProfessional;
+
+        foreach ([$reply->likelyCause, ...$reply->safeChecks, $reply->question] as $part) {
+            $result = $this->assess($part);
+
+            if ($result->blocked) {
+                return $result;
+            }
+
+            $escalated = $escalated || $result->escalated;
+        }
+
+        return new SafetyResult(
+            safe: true,
+            blocked: false,
+            escalated: $escalated,
+            text: ($escalated ? $reply->withProfessional() : $reply)->toJson(),
         );
     }
 }

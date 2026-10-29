@@ -48,6 +48,7 @@ final class ProviderCatalog
                     label: (string) ($modelConfig['label'] ?? $modelId),
                     supportsVision: (bool) ($modelConfig['vision'] ?? true),
                     options: (array) ($modelConfig['options'] ?? []),
+                    supportsStructuredOutput: (bool) ($modelConfig['structured_output'] ?? false),
                 );
             }
 

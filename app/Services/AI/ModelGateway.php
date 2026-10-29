@@ -15,6 +15,7 @@ use Symfony\AI\Platform\Message\UserMessage;
 use Symfony\AI\Platform\Result\MultiPartResult;
 use Symfony\AI\Platform\Result\ResultInterface;
 use Symfony\AI\Platform\Result\TextResult;
+use Symfony\AI\Platform\TokenUsage\TokenUsageInterface;
 
 /**
  * Thin application boundary around a Symfony AI agent.
@@ -51,7 +52,7 @@ final class ModelGateway
      *
      * @throws AiException
      */
-    public function askWithImage(string $prompt, string $imagePath, ?string $systemPrompt = null): string
+    public function askWithImage(string $prompt, string $imagePath, ?string $systemPrompt = null, ?array $schema = null): string
     {
         $this->registry->assertVisionSupported();
         $this->assertUsableImage($imagePath);
@@ -59,17 +60,29 @@ final class ModelGateway
         return $this->run(new UserMessage(
             new Text($prompt),
             Image::fromFile($imagePath),
-        ), $systemPrompt);
+        ), $systemPrompt, $schema);
     }
 
     /**
      * Continue a text conversation with prior user/assistant turns.
      *
+     * @param  array<string, mixed>|null  $schema  See supportsStructuredOutput()
+     *
      * @throws AiException
      */
-    public function continueConversation(MessageBag $messages, ?string $systemPrompt = null): string
+    public function continueConversation(MessageBag $messages, ?string $systemPrompt = null, ?array $schema = null): string
     {
-        return $this->run($messages, $systemPrompt);
+        return $this->run($messages, $systemPrompt, $schema);
+    }
+
+    /**
+     * Whether a $schema passed to the calls above is sent: the selected model
+     * then answers with JSON matching it. Other models get no schema and
+     * answer in free text, so callers must handle both.
+     */
+    public function supportsStructuredOutput(): bool
+    {
+        return $this->registry->model()->supportsStructuredOutput;
     }
 
     /**
@@ -80,12 +93,25 @@ final class ModelGateway
         return $this->registry->providerName();
     }
 
-    private function run(string|UserMessage|MessageBag $input, ?string $systemPrompt): string
+    /**
+     * @param  array<string, mixed>|null  $schema
+     */
+    private function run(string|UserMessage|MessageBag $input, ?string $systemPrompt, ?array $schema = null): string
     {
         $agent = $this->agents->create($systemPrompt);
+        $options = $this->registry->model()->options;
+
+        // A plain JSON schema array: the Anthropic bridge sends it as
+        // output_config.format and the reply stays JSON text.
+        if ($schema !== null && $this->supportsStructuredOutput()) {
+            $options['response_format'] = [
+                'type' => 'json_schema',
+                'json_schema' => ['name' => 'diagnosis', 'schema' => $schema, 'strict' => true],
+            ];
+        }
 
         try {
-            $result = $agent->call($input, $this->registry->model()->options)->getResult();
+            $result = $agent->call($input, $options)->getResult();
         } catch (AiException $exception) {
             throw $exception;
         } catch (\Throwable $exception) {
@@ -101,6 +127,8 @@ final class ModelGateway
             throw AiRequestFailedException::fromProvider($exception, $providerName);
         }
 
+        $this->logUsage($result);
+
         $finishReason = $result->getMetadata()->get('finish_reason');
 
         if ($finishReason instanceof FinishReason && $finishReason->is(FinishReasonCase::CONTENT_FILTER)) {
@@ -114,6 +142,28 @@ final class ModelGateway
         }
 
         return trim($content);
+    }
+
+    /**
+     * Token counts only, never content: cost per diagnosis and whether prompt
+     * caching hits (cache_read_tokens > 0 on follow-ups).
+     */
+    private function logUsage(ResultInterface $result): void
+    {
+        $usage = $result->getMetadata()->get('token_usage');
+
+        if (! $usage instanceof TokenUsageInterface) {
+            return;
+        }
+
+        $this->logger->info('AI usage', [
+            'provider' => $this->registry->providerName(),
+            'model' => $this->registry->modelId(),
+            'input_tokens' => $usage->getPromptTokens(),
+            'output_tokens' => $usage->getCompletionTokens(),
+            'cache_read_tokens' => $usage->getCacheReadTokens(),
+            'cache_creation_tokens' => $usage->getCacheCreationTokens(),
+        ]);
     }
 
     /**

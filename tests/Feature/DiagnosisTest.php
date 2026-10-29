@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\RepairSession;
 use App\Services\AI\ModelGateway;
 use App\Services\Repair\RepairSessionService;
+use App\Support\DisplayText;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Native\Mobile\AsyncTask;
 use Native\Mobile\Testing\Native;
@@ -462,4 +463,66 @@ it('fills the symptoms field from a resumed session', function () {
         ->assertSet('symptoms', 'kettle does not heat');
 
     expect(textInputNode($screen, 'symptoms-input')['props']['value'] ?? '')->toBe('kettle does not heat');
+});
+
+function claudeDiagnosisGateway(array $overrides = []): ModelGateway
+{
+    return TestGateway::make(
+        MockPlatformFactory::createPlatform((string) json_encode(array_merge([
+            'object' => 'Phone with a USB-C cable',
+            'likely_cause' => 'Lint in the charging port or a faulty cable.',
+            'confidence' => 'medium',
+            'safe_checks' => ['Try a different cable and charger.', 'Clean the port gently with a wooden toothpick.'],
+            'hazard' => 'none',
+            'needs_professional' => false,
+            'question' => 'Does the charging icon appear at all?',
+        ], $overrides))),
+        provider: 'anthropic',
+        model: 'claude-opus-5-5',
+        key: 'sk-ant-test-key',
+    );
+}
+
+it('shows a structured Claude diagnosis as a card', function () {
+    app()->instance(ModelGateway::class, claudeDiagnosisGateway());
+
+    Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->set('symptoms', 'phone is not charging')
+        ->tap('analyze-photo-button')
+        ->assertElement('column', fn (array $node): bool => ($node['ref'] ?? null) === 'vision-result-card')
+        ->assertSee('Phone with a USB-C cable')
+        ->assertSee('Lint in the charging port or a faulty cable.')
+        ->assertSee('Medium confidence')
+        ->assertSee('Try a different cable and charger.')
+        ->assertSee('Clean the port gently with a wooden toothpick.')
+        ->assertSee('Does the charging icon appear at all?')
+        ->assertDontSee('"likely_cause"');
+
+    expect(DisplayText::plain((string) RepairSession::query()->latest('updated_at')->firstOrFail()->summary))
+        ->toContain('Lint in the charging port');
+});
+
+it('shows the professional notice when Claude flags a mains hazard', function () {
+    app()->instance(ModelGateway::class, claudeDiagnosisGateway(['hazard' => 'mains']));
+
+    Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->tap('analyze-photo-button')
+        ->assertSee('Use a qualified professional')
+        ->assertSee('Safety note: mains, gas or battery risk');
+
+    expect(RepairSession::query()->latest('updated_at')->firstOrFail()->status)->toBe('escalated');
+});
+
+it('blocks a structured reply with a dangerous check', function () {
+    app()->instance(ModelGateway::class, claudeDiagnosisGateway([
+        'safe_checks' => ['Remove the back cover and replace the battery.'],
+    ]));
+
+    Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->tap('analyze-photo-button')
+        ->assertSee('Safety filter blocked unsafe guidance')
+        ->assertDontSee('back cover');
 });

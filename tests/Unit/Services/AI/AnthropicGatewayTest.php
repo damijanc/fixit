@@ -6,6 +6,8 @@ use App\Services\AI\AiRequestFailedException;
 use App\Services\AI\ModelGateway;
 use App\Services\AI\Provider\ProviderCatalog;
 use App\Services\AI\Provider\SymfonyAiPlatformFactory;
+use App\Services\Diagnosis\DiagnosisReply;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 use Tests\Support\TestGateway;
@@ -113,4 +115,38 @@ it('explains a refusal that carries no text', function () {
 
     expect(fn () => $gateway->ask('ping'))
         ->toThrow(AiRequestFailedException::class, 'Anthropic returned no answer');
+});
+
+it('asks Claude for a structured diagnosis when a schema is given', function () {
+    $requests = [];
+    $json = (string) json_encode(['object' => 'Kettle']);
+
+    $reply = anthropicGateway(claudeMessage([['type' => 'text', 'text' => $json]]), $requests)
+        ->askWithImage('What is in this photo?', base_path('tests/Fixtures/vision-photo.jpg'), 'You are FixIt.', DiagnosisReply::schema());
+
+    expect($reply)->toBe($json)
+        ->and($requests[0]['output_config']['format']['type'])->toBe('json_schema')
+        ->and($requests[0]['output_config']['format']['schema']['required'])->toContain('safe_checks', 'hazard')
+        ->and($requests[0]['output_config']['effort'])->toBe('medium');
+});
+
+it('logs token usage and cache reads for every call', function () {
+    Log::spy();
+    $requests = [];
+    $response = claudeMessage([['type' => 'text', 'text' => 'ok']]);
+    $response['usage'] = ['input_tokens' => 1800, 'output_tokens' => 240, 'cache_read_input_tokens' => 1500, 'cache_creation_input_tokens' => 0];
+
+    anthropicGateway($response, $requests)->ask('ping');
+
+    Log::shouldHaveReceived('info')->withArgs(
+        fn (string $message, array $context): bool => $message === 'AI usage'
+            && $context === [
+                'provider' => 'Anthropic',
+                'model' => 'claude-opus-5-5',
+                'input_tokens' => 1800,
+                'output_tokens' => 240,
+                'cache_read_tokens' => 1500,
+                'cache_creation_tokens' => 0,
+            ],
+    );
 });
