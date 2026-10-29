@@ -37,8 +37,8 @@ Create a release:
 ```bash
 git checkout main
 git pull
-git tag v1.0.0
-git push origin v1.0.0
+git tag -a v1.0.1 -m "FixIt 1.0.1"
+git push origin v1.0.1
 ```
 
 The APK appears under **Releases** on GitHub, not just as a workflow artifact.
@@ -97,13 +97,18 @@ Verify:
 - GitHub Actions run `40487118046` (2026-10-27): Ubuntu, PHP 8.5, JDK 17, Android SDK 36 — signed release APK built, `apksigner`-verified and uploaded as `fixit-android-release-apk` (~8.5 min).
 - GitHub Actions run `40659466606` (2026-10-28): tag-triggered release `v0.0.5-ci-test` built and verified the APK, then created a GitHub Release with `app-release.apk` and its SHA-256. Test tag/release removed afterwards.
 - A local signed release APK built on macOS with JDK 17 / SDK 36 and installed/launched on the `Pixel_9a` emulator (2026-10-27).
-- Physical-device install of the release build is still pending.
+- GitHub Actions run `40913701543` (2026-10-29): tag `v1.0.0` built, signed and verified the APK with the production `.env` and published the **FixIt 1.0.0** GitHub Release (`app-release.apk`, 82,292,739 bytes, SHA-256 `87d97558…5c2b`).
+- Physical ZTE 8050 (2026-10-29): the downloaded `v1.0.0` APK matched its SHA-256, installed after uninstalling the debug build (different signing key), reports `versionName=1.0.0` and is not debuggable. A fresh install preselects Anthropic / Claude Opus 5.5; key saved, Test passed, and a laptop photo returned the Claude diagnosis card.
 
 ## CI warnings
 
 - Node 20 deprecations were removed by bumping `actions/checkout@v5` and `actions/setup-java@v5`.
 - `sdkmanager` was replaced with Android CLI (`android sdk install ...`); the deprecated warning is gone. Only the `ubuntu-latest` runner-image notice remains.
 - Android CLI prints a one-time telemetry notice; it is informational, not a build warning.
+
+## Updating a debug install
+
+A debug build (`native:run`) and the release APK are signed with different keys, so Android refuses to update one with the other (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`). Uninstall the debug build first; this deletes the saved key and local sessions.
 
 ## Versioning
 

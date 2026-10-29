@@ -33,7 +33,7 @@
                 <native:icon name="key" size="22" color="#B45309" dark-color="#FCD34D" />
                 <column class="flex-1">
                     <text class="text-sm font-bold text-theme-on-warning-container">No key saved yet</text>
-                    <text class="text-xs text-theme-on-warning-container">Add a {{ $providerName }} API key to start diagnosing.</text>
+                    <text class="text-xs text-theme-on-warning-container">Add your {{ $providerName }} API key to start diagnosing.</text>
                 </column>
             </row>
         @endif

@@ -5,7 +5,7 @@ Target: **90 seconds**, recorded on the physical ZTE 8050 with the v1.0.0 releas
 ## Before recording
 
 1. Install the signed release APK (see [JUDGE_GUIDE.md](JUDGE_GUIDE.md)).
-2. In Settings, keep **Anthropic / Claude Opus 5.5**, enter the key, **Save provider settings**, **Test AI connection**. Then leave Settings so the key never appears on screen.
+2. In Settings, keep **Anthropic / Claude Opus 5.5**, enter the key, tap **Save**, then **Test**. Then leave Settings so the key never appears on screen.
 3. Pick a safe object with an obvious, low-risk problem: a laptop whose battery drains, a phone that will not charge (with its cable), a desk lamp that flickers. Do not photograph people, documents or open screens with private content.
 4. Keep Wi-Fi on; enable Do Not Disturb so no notifications show.
 5. Do one practice run first — the first Claude call takes ~15–25 s; trim the wait in editing or narrate over it.

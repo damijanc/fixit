@@ -23,7 +23,7 @@ The key is entered in the app. It is **not** bundled in the APK, `.env` or the r
 1. Copy the APK to the phone and open it; allow installation from unknown sources when prompted.
 2. Open **FixIt** and tap the **settings** (gear) icon.
 3. **Anthropic** and **Claude Opus 5.5** are preselected. To use another provider, pick it and one of its models — every provider below works with the same flow.
-4. Paste the API key, tap **Save provider settings**, then **Test AI connection**.
+4. Paste the API key, tap **Save**, then **Test**.
 5. Expected: `Connected: FixIt AI connectivity OK`.
 
 Switching provider requires entering that provider's key; FixIt never reuses the previous provider's key.

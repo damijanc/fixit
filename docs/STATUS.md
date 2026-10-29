@@ -6,7 +6,7 @@ Updated: 2026-10-29
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `release/v1.0.0` (judge release prep: Anthropic default provider, refreshed judge guide, production env for release builds).
+- Latest release: **v1.0.0** (GitHub Release, run 40913701543) — VERIFIED on the ZTE 8050: fresh install preselects Anthropic / Claude Opus 5.5, Claude diagnosis card shown.
 - Default provider: **Anthropic / Claude Opus 5.5** for fresh installs (was DeepSeek); a legacy DeepSeek-only key is still migrated to DeepSeek.
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
@@ -41,7 +41,7 @@ Updated: 2026-10-29
 - CI: PHP tests + tag-driven Android release VERIFIED on GitHub Actions.
 
 ## Next step
-T11 release: merge `release/v1.0.0`, tag `v1.0.0`, check the CI release, install the release APK on the ZTE 8050 (production env, Anthropic default), then record the demo video. Optional: real-key runs for DeepSeek, OpenRouter and OpenAI.
+T11: record the 90-second demo video (storyboard in [DEMO.md](DEMO.md)) and attach it to the v1.0.0 release or the submission. Optional: real-key runs for DeepSeek, OpenRouter and OpenAI.
 
 ## Known risks
 - Real-key runs after T13 cover Anthropic and Hugging Face only; provider/model IDs were checked against live catalogs and Symfony AI 0.15 catalogs, but account access, regional availability and vision pricing can differ.
@@ -425,8 +425,11 @@ T11 release: merge `release/v1.0.0`, tag `v1.0.0`, check the CI release, install
 - Why: no GitHub Release existed (the CI test release was removed); the judge guide described an unpublished DeepSeek-only build; release builds shipped with `APP_DEBUG=true`.
 - Decision (user, 2026-10-29): fresh installs preselect Anthropic / Claude Opus 5.5; version `v1.0.0`.
 - Verified: `php artisan test` — 213 passed, 1045 assertions (Anthropic default; legacy DeepSeek key still migrates to DeepSeek while the default is Anthropic). `vendor/bin/pint --test` on changed PHP files — passed.
-- Not verified yet: the release workflow with the production env; the release APK on the ZTE 8050.
-- Next executable action: merge, tag `v1.0.0`, check the release run, install `app-release.apk` on the ZTE.
+- Released: PR #33 merged; PR CI Android build passed with the production env; tag `v1.0.0` on `520c79c`; release run 40913701543 published **FixIt 1.0.0** with `app-release.apk` (82,292,739 bytes, SHA-256 `87d97558f867163441a9d7148b9b5c880659bd52dca972997fe495ee82fd5c2b`).
+- Verified on the physical ZTE 8050 (2026-10-29 ~18:00): downloaded APK matched the SHA-256; `adb install -r` over the debug build failed with `INSTALL_FAILED_UPDATE_INCOMPATIBLE` (different signing key), so the debug build was uninstalled (user approved) and v1.0.0 installed — `versionName=1.0.0`, `versionCode=24`, not debuggable. Fresh-install Settings showed Anthropic / `claude-opus-5-5` and the "No key saved yet" banner; the user saved a key, Test passed, and a laptop photo ("fans are loud on my laptop") returned the Claude card with object, cause, medium confidence and five safe checks.
+- Follow-up fixes (docs PR): judge guide and demo use the on-screen button names **Save** / **Test**; Settings banner reads "Add your {provider} API key" (was "Add a Anthropic").
+- Not verified: logs on the release build (not debuggable, so `run-as` is unavailable); a cache read on a second follow-up.
+- Next executable action: record the demo video.
 
 ## Handoff entry template
 
