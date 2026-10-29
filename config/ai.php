@@ -86,18 +86,24 @@ return [
             'driver' => 'anthropic',
             'base_url' => 'https://api.anthropic.com',
             'key_hint' => 'Create a key in the Anthropic Console. Anthropic keys usually start with sk-ant-.',
+            // Current Claude models always think, and thinking shares max_tokens
+            // with the answer: the bridge default of 1000 truncates replies.
+            // Effort is set explicitly because the defaults differ per model.
             'models' => [
-                'claude-sonnet-4-5' => [
-                    'label' => 'Claude Sonnet 4.5',
+                'claude-opus-5-5' => [
+                    'label' => 'Claude Opus 5.5',
                     'vision' => true,
+                    'options' => ['max_tokens' => 16000, 'output_config' => ['effort' => 'medium']],
                 ],
-                'claude-haiku-4-5' => [
-                    'label' => 'Claude Haiku 4.5',
+                'claude-sonnet-5-5' => [
+                    'label' => 'Claude Sonnet 5.5',
                     'vision' => true,
+                    'options' => ['max_tokens' => 16000, 'output_config' => ['effort' => 'medium']],
                 ],
-                'claude-opus-4-1' => [
-                    'label' => 'Claude Opus 4.1',
+                'claude-haiku-5-5' => [
+                    'label' => 'Claude Haiku 5.5',
                     'vision' => true,
+                    'options' => ['max_tokens' => 16000, 'output_config' => ['effort' => 'medium']],
                 ],
             ],
         ],

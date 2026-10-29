@@ -52,7 +52,7 @@ Switching provider requires entering the new provider's key; FixIt never reuses 
 | OpenRouter | `anthropic/claude-sonnet-4.5` | One OpenRouter key, Claude vision |
 | OpenRouter | `openai/gpt-4.1` | Same OpenRouter key, GPT vision |
 | Hugging Face | `Qwen/Qwen3-VL-30B-A3B-Instruct` | Official Hugging Face bridge, vision |
-| Anthropic | `claude-sonnet-4-5` | Direct Anthropic bridge |
+| Anthropic | `claude-opus-5-5` | Direct Anthropic bridge, vision; also `claude-sonnet-5-5`, `claude-haiku-5-5` |
 | OpenAI | `gpt-4.1` | Direct OpenAI Responses bridge |
 
 ## Safety

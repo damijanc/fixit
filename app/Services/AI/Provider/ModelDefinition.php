@@ -10,6 +10,8 @@ final readonly class ModelDefinition
         public string $id,
         public string $label,
         public bool $supportsVision = true,
+        /** @var array<string, mixed> Request options sent with every call to this model. */
+        public array $options = [],
     ) {}
 
     public function supportsImage(): bool

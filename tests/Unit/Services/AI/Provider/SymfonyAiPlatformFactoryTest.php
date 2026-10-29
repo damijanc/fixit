@@ -93,7 +93,7 @@ function anthropicResponse(): string
         'id' => 'msg_test',
         'type' => 'message',
         'role' => 'assistant',
-        'model' => 'claude-sonnet-4-5',
+        'model' => 'claude-opus-5-5',
         'content' => [['type' => 'text', 'text' => 'ok']],
         'stop_reason' => 'end_turn',
         'stop_sequence' => null,
@@ -190,12 +190,12 @@ it('routes Hugging Face photos to an inference provider that accepts full-size i
 });
 
 it('constructs the Anthropic bridge with Anthropic headers', function () {
-    $request = invokeProvider('anthropic', 'claude-sonnet-4-5', anthropicResponse());
+    $request = invokeProvider('anthropic', 'claude-opus-5-5', anthropicResponse());
 
     expect($request['url'])->toBe('https://api.anthropic.com/v1/messages');
     expect(requestHeader($request, 'x-api-key'))->toBe('sk-provider-test-key-123');
     expect(requestHeader($request, 'anthropic-version'))->toBe('2023-06-01');
-    expect(requestBody($request)['model'])->toBe('claude-sonnet-4-5');
+    expect(requestBody($request)['model'])->toBe('claude-opus-5-5');
 });
 
 it('constructs the OpenAI Responses bridge for direct OpenAI', function () {
@@ -227,7 +227,7 @@ it('sends an image through the Hugging Face bridge as a data URL', function () {
 });
 
 it('sends an image through the Anthropic bridge as a base64 content block', function () {
-    $request = invokeProviderWithImage('anthropic', 'claude-sonnet-4-5', anthropicResponse());
+    $request = invokeProviderWithImage('anthropic', 'claude-opus-5-5', anthropicResponse());
     $payload = json_encode(requestBody($request));
 
     expect($payload)
