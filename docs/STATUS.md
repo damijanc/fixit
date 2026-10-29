@@ -9,7 +9,8 @@ Updated: 2026-10-28
 - Active branch: `main` (T13 merged as IMPLEMENTED in PR #18; real-key and physical-device smoke tests pending).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 138 tests, 756 assertions (T19 branch, includes T16–T18).
+- Host test suite: VERIFIED — 179 tests, 852 assertions (T22 branch, from `main` after T19).
+- Safety filter false positives (T22): **VERIFIED** on `task/t22-safety-false-positives` — phone-charging advice (protective case, other wall socket, battery-charging setting, "remove the case") no longer blocked; opening casings, mains work and protection bypasses stay blocked; blocks logged by rule id (plus matched words in debug builds); the blocked ZTE photo now gets an answer.
 - Anthropic / Claude (T19): **VERIFIED on the ZTE 8050** with a real key on `task/t19-anthropic` — Claude Opus 5.5 (default), Sonnet 5.5 and Haiku 5.5; `max_tokens` 16000 and `effort: medium` per model; thinking replies and refusals handled; Test connection, photo diagnosis and follow-up passed.
 - Diagnosis text fields (T18): **VERIFIED**, merged in PR #25 — symptoms and follow-up fields no longer drop characters (no echo of typed text); emulator fake-provider check plus hand typing on the ZTE 8050.
 - API key field (T16): **VERIFIED**, merged in PR #23 — the key field no longer drops characters (live-sync echo race in NativePHP's text input); emulator fake-provider check plus real Hugging Face Test connection on the ZTE 8050.
@@ -344,6 +345,28 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
   - Physical ZTE 8050 (Android 13), debug build of this branch, the user's Anthropic key (entered via `adb input text` from the Mac clipboard), Claude Opus 5.5: Test connection → "Connected"; photo diagnosis → 778-character answer stored, session `awaiting_follow_up`, 23 s or less from photo capture (incl. typing) to stored answer; one follow-up → 617-character answer. No errors in `laravel.log`.
 - Not verified: Sonnet 5.5 and Haiku 5.5 with a real key; a real refusal; token usage and cache hits (not logged yet).
 - Next executable action: T20 — structured JSON diagnosis via `output_config.format` and logging token usage/cache reads to show prompt caching.
+
+### 2026-10-29 — T22 Safety filter blocked ordinary charging advice
+- Branch/PR: `task/t22-safety-false-positives` (PR pending), from `main` after PR #26 (independent of T21 / PR #27).
+- Changed files: `app/Services/Safety/SafetyFilter.php`; `tests/Unit/Services/Safety/SafetyFilterTest.php`; `docs/STATUS.md`, `docs/TASKS.md`.
+- Problem: a photo of a phone with a cable plus "phone is not charging" was replaced by the block message on the ZTE (Claude Opus 5.5). The filter stored and logged nothing about why.
+- Root cause, found in three rounds on the device:
+  - Offline probe of typical charging advice: "Remove the phone's protective case" and "Take off any case or cover" hit `opening_appliance`; "Connect the charger to a different wall socket" hit `mains_work`; "Disable optimised battery charging protection" hit `bypass_interlock`; "Plug the charger into another wall socket" escalated.
+  - After the first fix the new log showed `opening_appliance` again. The rule matched a verb and a target word anywhere within 60 characters ("Open Settings on your device", "Remove the cable and look at the back").
+  - After tightening, the debug log showed the exact match: `"Remove the case"` — the protective case.
+- Fix:
+  - Accessories (protective/phone/silicone/... case or cover, "any case", "case or cover", screen protector) are neutralised before the block rules. "The/your case" counts as the accessory only when the sentence mentions nothing inside (board, circuit, screws, wires, inside, internal, motor, element, fuse, replacing/disconnecting the battery).
+  - `opening_appliance`: "disassemble", "take apart", "pry/prise open/off" block on their own; otherwise the casing word (back, case, casing, housing, panel, cover, appliance, device, boiler, machine, screws) must be the verb's object — at most three words between, never across and/then/or/to/on/in/from/with/for/of/at/so/if, not a possessive ("device's").
+  - `mains_work`: work verbs only (work on, touch, rewire, repair, open) — connecting or unplugging a charger is not mains work.
+  - `bypass_interlock`: "protection" only as surge/thermal/overload/overcurrent/circuit protection.
+  - Escalation no longer fires on "wall socket" alone; mains-powered, live wire, high voltage and voltages still escalate.
+  - A block logs `Safety filter blocked model output` with rule ids; debug builds add the matched words. The blocked text is still never stored.
+- Verified (command, environment/device, result):
+  - `php artisan test` — 179 passed, 852 assertions. `SafetyFilterTest`: 16 safe charging/settings sentences must pass unchanged, 19 dangerous counterparts must stay blocked with the expected rule (back cover, case screws, housing, open the device, open up the back panel, remove screws, unscrew cover, disassemble, take apart, pry open, remove the case to reach the board / check wires inside / replace the battery, rewire/open/touch mains, live wire, bypass fuse, disable surge/thermal protection, safety switch), plus escalation and both log formats.
+  - `vendor/bin/pint --test` on changed files — passed.
+  - Physical ZTE 8050, real Anthropic key (Claude Opus 5.5), same phone-with-cable photo and "phone is not charging": blocked on `main` and twice during the fix (log reasons above); with the final build an 807-character answer was stored, status `awaiting_follow_up`, no block logged (2026-10-29 10:56).
+- Not verified: other appliance categories against real model output (the rules are still keyword-based; new false positives will show their matched words in debug logs).
+- Next executable action: merge PRs #27 and this one; then T20.
 
 ## Handoff entry template
 
