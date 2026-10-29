@@ -9,6 +9,7 @@ use Symfony\AI\Platform\Exception\BadRequestException;
 use Symfony\AI\Platform\Exception\ExceedContextSizeException;
 use Symfony\AI\Platform\Exception\ModelNotFoundException;
 use Symfony\AI\Platform\Exception\RateLimitExceededException;
+use Symfony\AI\Platform\Exception\RuntimeException;
 use Symfony\AI\Platform\Exception\ServerException;
 use Symfony\Contracts\HttpClient\Exception\HttpExceptionInterface;
 
@@ -28,6 +29,17 @@ final class AiRequestFailedException extends AiException
     }
 
     /**
+     * The model's safety system stopped the reply (Anthropic stop_reason
+     * "refusal"). Any partial text is discarded.
+     */
+    public static function refused(string $providerName): self
+    {
+        return new self(
+            "{$providerName} declined this request. Describe the appliance problem differently, or ask a qualified professional.",
+        );
+    }
+
+    /**
      * Translate a Symfony AI / HttpClient failure into a user-safe message.
      *
      * Symfony AI reports HTTP failures as typed exceptions without an HTTP
@@ -38,6 +50,16 @@ final class AiRequestFailedException extends AiException
         if ($previous instanceof ExceedContextSizeException) {
             return new self(
                 "{$providerName} reports the conversation is too long for this model. Start a new repair session.",
+                previous: $previous,
+            );
+        }
+
+        // The bridges throw the bare platform RuntimeException (subclasses are
+        // HTTP failures) for a reply without usable content, e.g. a refusal
+        // before any text. The request arrived, so "could not be reached" is wrong.
+        if ($previous::class === RuntimeException::class) {
+            return new self(
+                "{$providerName} returned no answer for this request. Rephrase it or try again.",
                 previous: $previous,
             );
         }

@@ -43,9 +43,9 @@ it('offers verified vision models for Hugging Face, Anthropic and OpenAI', funct
         ->toContain('google/gemma-4-31B-it');
 
     expect(array_keys($catalog->get('anthropic')->models))
-        ->toContain('claude-sonnet-4-5')
-        ->toContain('claude-haiku-4-5')
-        ->toContain('claude-opus-4-1');
+        ->toContain('claude-opus-5-5')
+        ->toContain('claude-sonnet-5-5')
+        ->toContain('claude-haiku-5-5');
 
     expect(array_keys($catalog->get('openai')->models))
         ->toContain('gpt-4.1')

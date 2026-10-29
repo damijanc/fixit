@@ -6,10 +6,15 @@ namespace App\Services\AI;
 
 use App\Services\AI\Provider\ProviderRegistry;
 use Psr\Log\LoggerInterface;
+use Symfony\AI\Platform\FinishReason\FinishReason;
+use Symfony\AI\Platform\FinishReason\FinishReasonCase;
 use Symfony\AI\Platform\Message\Content\Image;
 use Symfony\AI\Platform\Message\Content\Text;
 use Symfony\AI\Platform\Message\MessageBag;
 use Symfony\AI\Platform\Message\UserMessage;
+use Symfony\AI\Platform\Result\MultiPartResult;
+use Symfony\AI\Platform\Result\ResultInterface;
+use Symfony\AI\Platform\Result\TextResult;
 
 /**
  * Thin application boundary around a Symfony AI agent.
@@ -80,7 +85,7 @@ final class ModelGateway
         $agent = $this->agents->create($systemPrompt);
 
         try {
-            $content = $agent->call($input)->getContent();
+            $result = $agent->call($input, $this->registry->model()->options)->getResult();
         } catch (AiException $exception) {
             throw $exception;
         } catch (\Throwable $exception) {
@@ -96,11 +101,32 @@ final class ModelGateway
             throw AiRequestFailedException::fromProvider($exception, $providerName);
         }
 
-        if (! is_string($content) || trim($content) === '') {
+        $finishReason = $result->getMetadata()->get('finish_reason');
+
+        if ($finishReason instanceof FinishReason && $finishReason->is(FinishReasonCase::CONTENT_FILTER)) {
+            throw AiRequestFailedException::refused($this->registry->providerName());
+        }
+
+        $content = self::text($result);
+
+        if ($content === null || trim($content) === '') {
             throw AiRequestFailedException::emptyResponse();
         }
 
         return trim($content);
+    }
+
+    /**
+     * The answer text. Models that think (current Claude models always do)
+     * return the thinking block next to the text as a multi-part result.
+     */
+    private static function text(ResultInterface $result): ?string
+    {
+        return match (true) {
+            $result instanceof MultiPartResult => $result->asText(),
+            $result instanceof TextResult => $result->getContent(),
+            default => null,
+        };
     }
 
     private function assertUsableImage(string $imagePath): void

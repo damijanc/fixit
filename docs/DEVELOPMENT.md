@@ -90,7 +90,7 @@ FIXIT_AI_TIMEOUT=60
 | DeepSeek | Generic OpenAI-compatible | `deepseek-flash` |
 | OpenRouter | Generic OpenAI-compatible | `anthropic/claude-sonnet-4.5`, `openai/gpt-4.1`, `openai/gpt-4o`, `openai/gpt-5` |
 | Hugging Face | `symfony/ai-hugging-face-platform` | `Qwen/Qwen3-VL-30B-A3B-Instruct`, `Qwen/Qwen3.8-27B`, `google/gemma-4-31B-it` |
-| Anthropic | `symfony/ai-anthropic-platform` | `claude-sonnet-4-5`, `claude-haiku-4-5`, `claude-opus-4-1` |
+| Anthropic | `symfony/ai-anthropic-platform` | `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5` |
 | OpenAI | `symfony/ai-open-ai-platform` | `gpt-4.1`, `gpt-4o`, `gpt-5` |
 
 OpenRouter is one provider/key: selecting `anthropic/claude-sonnet-4.5` or `openai/gpt-4.1` still uses the OpenRouter platform and OpenRouter key.

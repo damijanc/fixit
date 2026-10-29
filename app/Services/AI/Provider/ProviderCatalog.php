@@ -47,6 +47,7 @@ final class ProviderCatalog
                     id: $modelId,
                     label: (string) ($modelConfig['label'] ?? $modelId),
                     supportsVision: (bool) ($modelConfig['vision'] ?? true),
+                    options: (array) ($modelConfig['options'] ?? []),
                 );
             }
 

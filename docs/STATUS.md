@@ -9,8 +9,9 @@ Updated: 2026-10-28
 - Active branch: `main` (T13 merged as IMPLEMENTED in PR #18; real-key and physical-device smoke tests pending).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 132 tests, 740 assertions (T18 branch, includes T16/T17).
-- Diagnosis text fields (T18): **VERIFIED** on `fix/diagnosis-input-dropped-chars` (PR #25) — symptoms and follow-up fields no longer drop characters (no echo of typed text); emulator fake-provider check plus hand typing on the ZTE 8050.
+- Host test suite: VERIFIED — 138 tests, 756 assertions (T19 branch, includes T16–T18).
+- Anthropic / Claude (T19): **VERIFIED on the ZTE 8050** with a real key on `task/t19-anthropic` — Claude Opus 5.5 (default), Sonnet 5.5 and Haiku 5.5; `max_tokens` 16000 and `effort: medium` per model; thinking replies and refusals handled; Test connection, photo diagnosis and follow-up passed.
+- Diagnosis text fields (T18): **VERIFIED**, merged in PR #25 — symptoms and follow-up fields no longer drop characters (no echo of typed text); emulator fake-provider check plus hand typing on the ZTE 8050.
 - API key field (T16): **VERIFIED**, merged in PR #23 — the key field no longer drops characters (live-sync echo race in NativePHP's text input); emulator fake-provider check plus real Hugging Face Test connection on the ZTE 8050.
 - Hugging Face photo diagnosis (T17): **VERIFIED on the ZTE 8050** with a real token on `fix/vision-photo-downscale` (PR #24) — Hugging Face requests are routed to `deepinfra` because the router's default pick (novita) returned 503 for full-size phone photos; photo errors are shown next to the Send button.
 - Multi-provider AI (T13): **IMPLEMENTED + emulator fake-provider smoke** — DeepSeek, OpenRouter, Hugging Face, Anthropic and OpenAI are selectable; one encrypted provider/model/key selection; Symfony AI generic/HF/Anthropic/OpenAI bridges. Host tests cover platform construction, image payloads, migration, provider errors and no key cross-use. Emulator `Pixel_9a`: Settings selection, one-key save and Test connection passed for DeepSeek, OpenRouter and Hugging Face against the local fake provider; Hugging Face vision + multi-turn follow-up passed. Real provider keys and a physical device were not available.
@@ -327,6 +328,22 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
   - Physical ZTE 8050 (Android 13), debug build of this branch, real Hugging Face token, Gboard: symptoms and several follow-up answers typed by hand all arrived complete; the answer field cleared after each send (reported by the user on 2026-10-29).
 - Not verified: Gboard autocorrect replacing a whole word was not checked separately.
 - Next executable action: merge PR #25; then T19 (the UI feels unresponsive while a request runs).
+
+### 2026-10-29 — T19 Anthropic integration on current Claude models
+- Branch/PR: `task/t19-anthropic` (PR pending), from `main` after PR #25.
+- Changed files: `config/ai.php` (Anthropic models + per-model `options`); `app/Services/AI/Provider/{ModelDefinition,ProviderCatalog}.php` (model request options); `app/Services/AI/ModelGateway.php` (options passed to `Agent::call`, multi-part text, refusal check); `app/Services/AI/AiRequestFailedException.php` (`refused()`, empty-reply message); new `tests/Unit/Services/AI/AnthropicGatewayTest.php`; `tests/Unit/Services/AI/Provider/{ProviderCatalog,SymfonyAiPlatformFactory}Test.php`; `docs/{JUDGE_GUIDE,DEVELOPMENT,STATUS,TASKS}.md`.
+- Problems found in the T13 integration (never run with a real key):
+  - Models were a generation old (Sonnet 4.5, Haiku 4.5, Opus 4.1).
+  - Current Claude models always think; the reply holds a `thinking` block before the `text`, so Symfony AI returns a `MultiPartResult` whose `getContent()` is an array. `ModelGateway` required a string, so every call to a current Claude model would have failed with "empty or unsupported response".
+  - FixIt sent no `max_tokens`; the bridge default (1000) is shared with thinking and can truncate the answer.
+  - A refusal (`stop_reason: refusal`) or a reply without content surfaced as "could not be reached. Check the internet connection".
+- Fix: Anthropic models are `claude-opus-5-5` (first), `claude-sonnet-5-5`, `claude-haiku-5-5`, each with `options: max_tokens 16000, output_config.effort medium` (Opus 5.5 and Haiku 5.5 default to medium, Sonnet 5.5 to high; set explicitly). Model options reach `Agent::call()` for every provider (empty for the others). The gateway reads `MultiPartResult::asText()`, throws `refused()` on a content-filter finish reason, and maps the bare platform `RuntimeException` (no usable content) to "returned no answer". No sampling parameters are sent. The Symfony AI Anthropic bridge stays (stack constraint); it already applies prompt-caching breakpoints by default.
+- Verified (command, environment/device, result):
+  - `php artisan test` — host macOS, PHP 8.5.12 — 138 passed, 756 assertions; the 6 new tests drive the real Symfony AI Anthropic bridge against a mocked Messages API and fail before the change.
+  - `vendor/bin/pint --test` — changed files pass (two untouched files are pre-existing failures).
+  - Physical ZTE 8050 (Android 13), debug build of this branch, the user's Anthropic key (entered via `adb input text` from the Mac clipboard), Claude Opus 5.5: Test connection → "Connected"; photo diagnosis → 778-character answer stored, session `awaiting_follow_up`, 23 s or less from photo capture (incl. typing) to stored answer; one follow-up → 617-character answer. No errors in `laravel.log`.
+- Not verified: Sonnet 5.5 and Haiku 5.5 with a real key; a real refusal; token usage and cache hits (not logged yet).
+- Next executable action: T20 — structured JSON diagnosis via `output_config.format` and logging token usage/cache reads to show prompt caching.
 
 ## Handoff entry template
 
