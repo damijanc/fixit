@@ -41,7 +41,7 @@ final class SymfonyAiPlatformFactory implements PlatformFactory
             ),
             ProviderDriver::HuggingFace => HuggingFaceFactory::createPlatform(
                 $apiKey,
-                null,
+                $provider->inferenceProvider,
                 $httpClient,
                 name: $provider->id,
                 baseUrl: $provider->baseUrl,

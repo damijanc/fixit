@@ -16,6 +16,7 @@ final readonly class ProviderDefinition
         public string $baseUrl,
         public string $keyHint,
         public array $models,
+        public ?string $inferenceProvider = null,
     ) {
         if ($models === []) {
             throw new \InvalidArgumentException("AI provider [{$id}] has no models configured.");

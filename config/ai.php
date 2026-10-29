@@ -62,6 +62,9 @@ return [
             'driver' => 'huggingface',
             'base_url' => rtrim((string) env('FIXIT_AI_HUGGINGFACE_BASE_URL', 'https://router.huggingface.co'), '/'),
             'key_hint' => 'Create a read token at huggingface.co/settings/tokens. Hugging Face tokens usually start with hf_.',
+            // The router's automatic pick (novita) returns 503 for full-size
+            // phone photos; deepinfra serves every model below and accepts them.
+            'inference_provider' => env('FIXIT_AI_HUGGINGFACE_INFERENCE_PROVIDER', 'deepinfra'),
             'models' => [
                 'Qwen/Qwen3-VL-30B-A3B-Instruct' => [
                     'label' => 'Qwen3-VL 30B',

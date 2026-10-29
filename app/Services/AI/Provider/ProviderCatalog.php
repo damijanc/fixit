@@ -57,6 +57,9 @@ final class ProviderCatalog
                 baseUrl: rtrim((string) ($providerConfig['base_url'] ?? ''), '/'),
                 keyHint: (string) ($providerConfig['key_hint'] ?? ''),
                 models: $models,
+                inferenceProvider: ($providerConfig['inference_provider'] ?? '') !== ''
+                    ? (string) $providerConfig['inference_provider']
+                    : null,
             );
         }
 

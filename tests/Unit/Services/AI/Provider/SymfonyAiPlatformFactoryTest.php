@@ -178,7 +178,15 @@ it('constructs the Hugging Face bridge with the router endpoint', function () {
 
     expect($request['url'])->toBe('https://router.huggingface.co/v1/chat/completions');
     expect(requestBearer($request))->toBe('sk-provider-test-key-123');
-    expect(requestBody($request)['model'])->toBe('Qwen/Qwen3-VL-30B-A3B-Instruct');
+    expect(requestBody($request)['model'])->toBe('Qwen/Qwen3-VL-30B-A3B-Instruct:deepinfra');
+});
+
+it('routes Hugging Face photos to an inference provider that accepts full-size images', function () {
+    // The router's default pick (novita) answered 503 for 12 MP phone photos;
+    // deepinfra serves every curated model and accepted the same photo.
+    $request = invokeProviderWithImage('huggingface', 'google/gemma-4-31B-it', chatCompletionResponse());
+
+    expect(requestBody($request)['model'])->toBe('google/gemma-4-31B-it:deepinfra');
 });
 
 it('constructs the Anthropic bridge with Anthropic headers', function () {

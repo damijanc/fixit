@@ -6,6 +6,7 @@ use App\Models\RepairSession;
 use App\Services\AI\ModelGateway;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Native\Mobile\Testing\Native;
+use Symfony\AI\Platform\Exception\ServerException;
 use Symfony\AI\Platform\Test\MockPlatformFactory;
 use Tests\Support\TestGateway;
 
@@ -81,6 +82,47 @@ it('keeps the photo when the vision request fails', function () {
         ->tap('analyze-photo-button')
         ->assertSee('insufficient balance')
         ->assertElement('image', fn (array $node): bool => ($node['ref'] ?? null) === 'captured-photo');
+});
+
+it('shows a failed photo request next to the send button', function () {
+    app()->instance(ModelGateway::class, TestGateway::make(
+        MockPlatformFactory::createPlatform(static function (): never {
+            throw new ServerException(503, 'internal server error');
+        }),
+    ));
+
+    // The message used to land in the status line below the fold, so a
+    // failed send looked like the button did nothing.
+    Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->tap('analyze-photo-button')
+        ->assertElement('row', fn (array $node): bool => ($node['ref'] ?? null) === 'vision-error')
+        ->assertSee('unavailable (HTTP 503)')
+        ->assertMissingElement('text', fn (array $node): bool => ($node['ref'] ?? null) === 'vision-status');
+});
+
+it('clears the photo error when the photo is sent again', function () {
+    $fail = true;
+    app()->instance(ModelGateway::class, TestGateway::make(
+        MockPlatformFactory::createPlatform(static function () use (&$fail): string {
+            if ($fail) {
+                throw new ServerException(503, 'internal server error');
+            }
+
+            return 'The image shows a blue test object.';
+        }),
+    ));
+
+    $screen = Native::visit('/diagnosis')
+        ->call('handlePhotoTaken', base_path('tests/Fixtures/vision-photo.jpg'), 'image/jpeg')
+        ->tap('analyze-photo-button')
+        ->assertSee('unavailable (HTTP 503)');
+
+    $fail = false;
+
+    $screen->tap('analyze-photo-button')
+        ->assertDontSee('unavailable (HTTP 503)')
+        ->assertMissingElement('row', fn (array $node): bool => ($node['ref'] ?? null) === 'vision-error');
 });
 
 it('discards the photo from the device', function () {
