@@ -9,8 +9,9 @@ Updated: 2026-10-28
 - Active branch: `main` (T13 merged as IMPLEMENTED in PR #18; real-key and physical-device smoke tests pending).
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
-- Host test suite: VERIFIED — 138 tests, 756 assertions (T19 branch, includes T16–T18).
-- Anthropic / Claude (T19): **VERIFIED on the ZTE 8050** with a real key on `task/t19-anthropic` — Claude Opus 5.5 (default), Sonnet 5.5 and Haiku 5.5; `max_tokens` 16000 and `effort: medium` per model; thinking replies and refusals handled; Test connection, photo diagnosis and follow-up passed.
+- Host test suite: VERIFIED — 146 tests, 839 assertions (T21 branch, includes T16–T19).
+- Busy feedback (T21): **VERIFIED** on `task/t21-busy-feedback` — AI calls (photo, follow-up, Settings Test) run as NativePHP async tasks on a background PHP thread, so spinners, progress text and locked controls render immediately; emulator screenshots of each busy state plus a hand check with Claude on the ZTE 8050.
+- Anthropic / Claude (T19): **VERIFIED on the ZTE 8050** with a real key, merged in PR #26 — Claude Opus 5.5 (default), Sonnet 5.5 and Haiku 5.5; `max_tokens` 16000 and `effort: medium` per model; thinking replies and refusals handled; Test connection, photo diagnosis and follow-up passed.
 - Diagnosis text fields (T18): **VERIFIED**, merged in PR #25 — symptoms and follow-up fields no longer drop characters (no echo of typed text); emulator fake-provider check plus hand typing on the ZTE 8050.
 - API key field (T16): **VERIFIED**, merged in PR #23 — the key field no longer drops characters (live-sync echo race in NativePHP's text input); emulator fake-provider check plus real Hugging Face Test connection on the ZTE 8050.
 - Hugging Face photo diagnosis (T17): **VERIFIED on the ZTE 8050** with a real token on `fix/vision-photo-downscale` (PR #24) — Hugging Face requests are routed to `deepinfra` because the router's default pick (novita) returned 503 for full-size phone photos; photo errors are shown next to the Send button.
@@ -344,6 +345,19 @@ T13 is merged as **IMPLEMENTED** (PR #18). Run real-key smoke tests with DeepSee
   - Physical ZTE 8050 (Android 13), debug build of this branch, the user's Anthropic key (entered via `adb input text` from the Mac clipboard), Claude Opus 5.5: Test connection → "Connected"; photo diagnosis → 778-character answer stored, session `awaiting_follow_up`, 23 s or less from photo capture (incl. typing) to stored answer; one follow-up → 617-character answer. No errors in `laravel.log`.
 - Not verified: Sonnet 5.5 and Haiku 5.5 with a real key; a real refusal; token usage and cache hits (not logged yet).
 - Next executable action: T20 — structured JSON diagnosis via `output_config.format` and logging token usage/cache reads to show prompt caching.
+
+### 2026-10-29 — T21 Show progress while an AI call runs
+- Branch/PR: `task/t21-busy-feedback` (PR pending), from `main` after PR #26.
+- Changed files: `app/NativeComponents/{Diagnosis,Settings}.php`; `app/Services/AI/AiException.php` (`displayMessage()`); `resources/views/native/{diagnosis,settings}.blade.php`; `tests/Pest.php` (`AsyncTask::fake()` for Feature tests); `tests/Feature/{Diagnosis,Settings}Test.php`; `docs/STATUS.md`, `docs/TASKS.md`.
+- Problem: tapping Send photo, sending a follow-up or Settings → Test looked like nothing happened for 10–30 s. The handlers called the model synchronously on the UI PHP thread, so the existing loading button and "Thinking…" indicator could not render until the reply had arrived — by then the busy flag was false again.
+- Fix: each handler sets the busy state and dispatches the call with `$this->async(static fn () => …)` (NativePHP `AsyncTask`, a booted background PHP context). `finished()` runs the existing safety filter, persistence and UI updates on the UI thread; `failed()` shows `AiException::displayMessage()`, which keeps the original user-safe message carried by `AsyncTaskException::originalClass()` and reports anything else. Task timeout is `ai.timeout + 30` s, so the HTTP timeout reports first. The follow-up is reloaded from its session id in the background (models do not cross threads).
+- UI: photo — loading button "Sending to …", a progress row "… is looking at your photo. This can take up to 30 seconds.", symptoms field and Discard disabled. Follow-up — the answer appears in the thread as a pending bubble with "Thinking…", the composer is disabled and its button spins; a failed send remounts the field with the answer (`$followUpInitial`). Settings — Test button spins with "Testing…", status "Contacting …", Save disabled.
+- Verified (command, environment/device, result):
+  - `php artisan test` — 146 passed, 839 assertions; new tests assert one async dispatch per action, the busy-state rendering (`loading`/`disabled` props, progress row, pending bubble) and that provider messages survive the background hop; they fail before the change.
+  - Emulator `Pixel_9a` (API 37), debug build against a fake provider that waits 6 s: screenshots 2 s after each tap show the busy states; replies arrive via `finished()` (session saved, thread rendered, field cleared); with the fake server stopped, Settings → Test showed FixIt's own "could not be reached…" message from the background task.
+  - Physical ZTE 8050, real Anthropic key (Claude Opus 5.5): Test, photo diagnosis and a follow-up — progress shows immediately and all completed (reported by the user on 2026-10-29).
+- Not verified: leaving the screen while a task runs (NativePHP scopes the callback to the component and drops it if the screen is gone; the reply is then lost, not saved).
+- Next executable action: T20 — structured JSON diagnosis and token/cache logging.
 
 ## Handoff entry template
 

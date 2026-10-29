@@ -5,7 +5,9 @@ declare(strict_types=1);
 use App\Services\AI\ModelGateway;
 use App\Services\AI\Provider\ProviderSettings;
 use App\Services\AI\Provider\ProviderSettingsStore;
+use Native\Mobile\AsyncTask;
 use Native\Mobile\Testing\Native;
+use Symfony\AI\Platform\Exception\AuthenticationException;
 use Symfony\AI\Platform\Test\MockPlatformFactory;
 use Tests\Support\InMemoryProviderSettingsStore;
 use Tests\Support\TestGateway;
@@ -154,6 +156,41 @@ it('tests the connection with the saved provider and key', function () {
     Native::visit('/settings')
         ->tap('test-connection-button')
         ->assertSee('Connected: FixIt AI connectivity OK');
+});
+
+it('tests the connection off the UI thread', function () {
+    useProviderSettings(new ProviderSettings('deepseek', 'deepseek-flash', 'sk-fixit-secure-test-123'));
+    app()->instance(ModelGateway::class, TestGateway::make(MockPlatformFactory::createPlatform('FixIt AI connectivity OK')));
+
+    Native::visit('/settings')
+        ->tap('test-connection-button')
+        ->assertSee('Connected: FixIt AI connectivity OK')
+        ->assertSet('testing', false);
+
+    AsyncTask::fakeInstance()->assertDispatchedTimes(1);
+});
+
+it('shows the test is running and locks the buttons', function () {
+    useProviderSettings(new ProviderSettings('deepseek', 'deepseek-flash', 'sk-fixit-secure-test-123'));
+
+    Native::visit('/settings')
+        ->set('testing', true)
+        ->assertElement('button', fn (array $node): bool => ($node['ref'] ?? null) === 'test-connection-button'
+            && ($node['props']['loading'] ?? false) === true)
+        ->assertElement('button', fn (array $node): bool => ($node['ref'] ?? null) === 'save-settings-button'
+            && ($node['props']['disabled'] ?? false) === true);
+});
+
+it('shows a failed connection test with the provider message', function () {
+    useProviderSettings(new ProviderSettings('deepseek', 'deepseek-flash', 'sk-fixit-secure-test-123'));
+    app()->instance(ModelGateway::class, TestGateway::make(MockPlatformFactory::createPlatform(static function (): never {
+        throw new AuthenticationException('Invalid username or password.');
+    })));
+
+    Native::visit('/settings')
+        ->tap('test-connection-button')
+        ->assertSee('DeepSeek rejected the API key (401)')
+        ->assertSet('testing', false);
 });
 
 it('asks for a key before testing the connection', function () {

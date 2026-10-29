@@ -1,5 +1,8 @@
 <?php
 
+use Native\Mobile\AsyncTask;
+use Tests\TestCase;
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -11,8 +14,11 @@
 |
 */
 
-pest()->extend(Tests\TestCase::class)
+pest()->extend(TestCase::class)
  // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+    // AI calls run as NativePHP async tasks; the fake runs them inline.
+    ->beforeEach(fn () => AsyncTask::fake())
+    ->afterEach(fn () => AsyncTask::clearFake())
     ->in('Feature');
 
 /*

@@ -93,14 +93,16 @@
                     class="flex-1"
                     a11y-label="Test AI connection"
                     a11y-hint="Sends a short test prompt using the saved provider and key"
+                    :loading="$testing"
                     @tap="testConnection"
                 >
-                    Test
+                    {{ $testing ? 'Testing…' : 'Test' }}
                 </native:button>
                 <native:button
                     ref="save-settings-button"
                     variant="primary"
                     class="flex-1"
+                    :disabled="$testing"
                     a11y-label="Save provider settings"
                     a11y-hint="Stores the provider, model and key securely on this device"
                     @tap="saveSettings"
