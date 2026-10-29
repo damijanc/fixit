@@ -2,12 +2,18 @@
 
 FixIt is an Android-only, AI-guided repair assistant built with NativePHP, Laravel and Symfony AI. You photograph a broken household item, describe the problem, and get a cautious diagnosis with safe checks — never instructions to open mains-powered devices or service gas equipment.
 
+**Bring your own provider.** FixIt runs Symfony AI inside the phone's embedded PHP, so the same diagnosis flow works with five providers and fourteen curated models — pick one in Settings and paste that provider's key. No FixIt backend sits in between.
+
 ## What you need
 
 - An **Android 13+** phone (arm64), or an Android emulator.
 - The **FixIt APK**: download `app-release.apk` from the **v1.0.0 GitHub Release** (or build it with [RELEASE.md](RELEASE.md)).
-- **One API key.** Recommended: **Anthropic** — <https://console.anthropic.com/settings/keys>. FixIt preselects Claude Opus 5.5.
-  Also supported: DeepSeek, OpenRouter, Hugging Face, OpenAI (see the table below).
+- **One API key** from any supported provider:
+  - **Anthropic** — <https://console.anthropic.com/settings/keys> (preselected: Claude Opus 5.5, with the diagnosis card)
+  - **DeepSeek** — <https://platform.deepseek.com/api_keys> (cheapest)
+  - **OpenRouter** — <https://openrouter.ai/keys> (one key for Claude and GPT models)
+  - **Hugging Face** — <https://huggingface.co/settings/tokens> (open-weight vision models)
+  - **OpenAI** — <https://platform.openai.com/api-keys>
 - Internet access for the model calls.
 
 The key is entered in the app. It is **not** bundled in the APK, `.env` or the repository.
@@ -16,7 +22,7 @@ The key is entered in the app. It is **not** bundled in the APK, `.env` or the r
 
 1. Copy the APK to the phone and open it; allow installation from unknown sources when prompted.
 2. Open **FixIt** and tap the **settings** (gear) icon.
-3. **Anthropic** and **Claude Opus 5.5** are preselected. Choose another provider/model if you prefer.
+3. **Anthropic** and **Claude Opus 5.5** are preselected. To use another provider, pick it and one of its models — every provider below works with the same flow.
 4. Paste the API key, tap **Save provider settings**, then **Test AI connection**.
 5. Expected: `Connected: FixIt AI connectivity OK`.
 
@@ -40,15 +46,19 @@ Switching provider requires entering that provider's key; FixIt never reuses the
 - **Prompt caching and usage.** Every call logs input, output, cache-write and cache-read tokens. On the test phone the first photo call wrote 3–6k tokens to the cache. (Logs are readable from debug builds via `adb`; see [STATUS.md](STATUS.md) for recorded runs.)
 - **Smaller uploads.** A small native Android plugin (`packages/photo-resize`) shrinks each photo to a 1568 px long edge before upload — Claude's own image limit — e.g. 2.6 MB → 178 KB, upright and without EXIF/GPS.
 
-## Provider/model pairs
+## Supported providers (Symfony AI)
 
-| Provider | Model | Notes |
-|---|---|---|
-| Anthropic | `claude-opus-5-5` | Default; diagnosis card; also `claude-sonnet-5-5`, `claude-haiku-5-5` |
-| DeepSeek | `deepseek-flash` | Cheapest; plain-text answers |
-| OpenRouter | `anthropic/claude-sonnet-4.5`, `openai/gpt-4.1` | One OpenRouter key for Claude and GPT; plain text |
-| Hugging Face | `Qwen/Qwen3-VL-30B-A3B-Instruct` | Routed via `deepinfra`; plain text |
-| OpenAI | `gpt-4.1` | Direct OpenAI bridge; plain text |
+Every provider goes through the same Symfony AI `Agent` and `Platform` interfaces; only the bridge differs. Switching provider is a Settings change, not a code change, and the photo, symptoms, follow-up history, safety filter and error messages work the same for all of them.
+
+| Provider | Symfony AI bridge | Curated vision models | Tested on the ZTE 8050 with a real key |
+|---|---|---|---|
+| **Anthropic** (default) | `Bridge\Anthropic` | Claude Opus 5.5, Sonnet 5.5, Haiku 5.5 | Yes — photo, card, follow-up (Opus 5.5) |
+| **DeepSeek** | `Bridge\Generic` (OpenAI-compatible) | DeepSeek Flash | Yes — photo diagnosis (before the multi-provider release) |
+| **OpenRouter** | `Bridge\Generic` | Claude Sonnet 4.5, GPT-4.1, GPT-4o, GPT-5 | No — emulator against a local fake provider |
+| **Hugging Face** | `Bridge\HuggingFace` (Inference Providers, routed via `deepinfra`) | Qwen3-VL 30B, Qwen3.8 27B, Gemma 4 31B | Yes — photo + follow-up (Qwen3-VL) |
+| **OpenAI** | `Bridge\OpenAi` (Responses API) | GPT-4.1, GPT-4o, GPT-5 | No — host tests only |
+
+Claude models additionally return the structured diagnosis card (see above); the other providers return a plain-text answer checked by the same safety filter.
 
 ## Safety
 
