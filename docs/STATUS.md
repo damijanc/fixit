@@ -1,12 +1,12 @@
 # FixIt status
 
-Updated: 2026-10-29
+Updated: 2026-10-30
 
 ## Current state
 - Project: Laravel 13.38.0 + NativePHP Mobile 4.6.1 at the repository root (ADR 0002).
 - Main setup PR: #1 (`setup/project-skeleton`), followed by docs PRs #2/#3.
 - Bootstrap branch: `task/t1-android-bootstrap`.
-- Active branch: `release/v1.0.0` (judge release prep: Anthropic default provider, refreshed judge guide, production env for release builds).
+- Latest release: **v1.0.0** (GitHub Release, run 40913701543) — VERIFIED on the ZTE 8050: fresh install preselects Anthropic / Claude Opus 5.5, Claude diagnosis card shown.
 - Default provider: **Anthropic / Claude Opus 5.5** for fresh installs (was DeepSeek); a legacy DeepSeek-only key is still migrated to DeepSeek.
 - Host PHP/Composer/Laravel/NativePHP versions: see [DEVELOPMENT.md](DEVELOPMENT.md).
 - Clean-checkout bootstrap: VERIFIED on macOS (see handoff log).
@@ -34,14 +34,14 @@ Updated: 2026-10-29
 - Android CI: **VERIFIED with stable signing** — run 40652416378 (main, 2026-10-28) built and uploaded a signed release APK after a transient NativePHP binary-download retry. `apksigner` shows `CN=FixIt Release, OU=Mobile, O=FixIt, L=Berlin, ST=Berlin, C=DE`.
 - Release publishing: **VERIFIED on tag `v0.0.5-ci-test`** — GitHub Actions run 40659466606 built the signed APK, verified it, created a GitHub Release and attached `app-release.apk` + SHA-256. Test tag/release removed afterwards.
 - CI maintenance: Node 20 warnings removed with `actions/checkout@v5` / `actions/setup-java@v5`; `sdkmanager` replaced by Android CLI (`android sdk install`). The only remaining annotation is the `ubuntu-latest` runner image migration notice and Android CLI telemetry tip.
-- Release docs: `docs/JUDGE_GUIDE.md`, `docs/RELEASE.md`, `docs/DEMO.md`, `scripts/build-release.sh` added. Demo video not recorded.
+- Release docs: `docs/JUDGE_GUIDE.md`, `docs/RELEASE.md`, `docs/DEMO.md`, `scripts/build-release.sh` added. Demo video recorded on the ZTE with v1.0.0 and cut to 90 s (2026-10-30; not committed).
 - Provider: **multi-provider** — DeepSeek (`deepseek-flash`) is the default; OpenRouter, Hugging Face, Anthropic and OpenAI are curated. Provider/model/key live in one encrypted `ai-settings.enc`; the old DeepSeek `ai-key.enc` is migrated automatically. ADR 0004.
 - Secure provider key: **VERIFIED on emulator** — saved from Settings, encrypted at rest with the Keystore-managed `APP_KEY`, absent from `.env` and the APK; one key at a time; switching provider does not reuse the old key. The old `sk-` prefix rule was removed.
-- Remaining: real-key smoke tests (DeepSeek regression, OpenRouter Claude/GPT, Hugging Face, direct Anthropic/OpenAI) and the physical-device pass; physical install of the release APK; demo video.
+- Remaining: real-key smoke tests (DeepSeek regression, OpenRouter Claude/GPT, Hugging Face, direct Anthropic/OpenAI) and the physical-device pass; physical install of the release APK.
 - CI: PHP tests + tag-driven Android release VERIFIED on GitHub Actions.
 
 ## Next step
-T11 release: merge `release/v1.0.0`, tag `v1.0.0`, check the CI release, install the release APK on the ZTE 8050 (production env, Anthropic default), then record the demo video. Optional: real-key runs for DeepSeek, OpenRouter and OpenAI.
+Submit: attach the 90-second demo video to the submission (or the v1.0.0 release). Optional: real-key runs for DeepSeek, OpenRouter and OpenAI; a cache read on a second follow-up; T12.
 
 ## Known risks
 - Real-key runs after T13 cover Anthropic and Hugging Face only; provider/model IDs were checked against live catalogs and Symfony AI 0.15 catalogs, but account access, regional availability and vision pricing can differ.
@@ -425,8 +425,19 @@ T11 release: merge `release/v1.0.0`, tag `v1.0.0`, check the CI release, install
 - Why: no GitHub Release existed (the CI test release was removed); the judge guide described an unpublished DeepSeek-only build; release builds shipped with `APP_DEBUG=true`.
 - Decision (user, 2026-10-29): fresh installs preselect Anthropic / Claude Opus 5.5; version `v1.0.0`.
 - Verified: `php artisan test` — 213 passed, 1045 assertions (Anthropic default; legacy DeepSeek key still migrates to DeepSeek while the default is Anthropic). `vendor/bin/pint --test` on changed PHP files — passed.
-- Not verified yet: the release workflow with the production env; the release APK on the ZTE 8050.
-- Next executable action: merge, tag `v1.0.0`, check the release run, install `app-release.apk` on the ZTE.
+- Released: PR #33 merged; PR CI Android build passed with the production env; tag `v1.0.0` on `520c79c`; release run 40913701543 published **FixIt 1.0.0** with `app-release.apk` (82,292,739 bytes, SHA-256 `87d97558f867163441a9d7148b9b5c880659bd52dca972997fe495ee82fd5c2b`).
+- Verified on the physical ZTE 8050 (2026-10-29 ~18:00): downloaded APK matched the SHA-256; `adb install -r` over the debug build failed with `INSTALL_FAILED_UPDATE_INCOMPATIBLE` (different signing key), so the debug build was uninstalled (user approved) and v1.0.0 installed — `versionName=1.0.0`, `versionCode=24`, not debuggable. Fresh-install Settings showed Anthropic / `claude-opus-5-5` and the "No key saved yet" banner; the user saved a key, Test passed, and a laptop photo ("fans are loud on my laptop") returned the Claude card with object, cause, medium confidence and five safe checks.
+- Follow-up fixes (docs PR): judge guide and demo use the on-screen button names **Save** / **Test**; Settings banner reads "Add your {provider} API key" (was "Add a Anthropic").
+- Not verified: logs on the release build (not debuggable, so `run-as` is unavailable); a cache read on a second follow-up.
+- Next executable action: record the demo video.
+
+### 2026-10-30 — T11 demo video
+- Branch/PR: `docs/v1.0.0-release-evidence` (PR #34).
+- Changed files: `docs/DEMO.md`, `docs/STATUS.md`, `docs/TASKS.md`.
+- Implemented: `adb shell screenrecord` on the ZTE 8050 running v1.0.0 with Claude Opus 5.5 (189 s: photo of a phone, "my phone won't turn on", card, follow-up, Settings provider list, Test). Cut with ffmpeg to 90 s, 1920×1080: phone on the right, a caption per storyboard slot on the left, end card; Claude waits removed; ElevenLabs Bella voiceover.
+- Verified: `ffprobe` — 90.000 s, h264 1920×1080 + AAC, 6.0 MB; one frame per scene checked; no API key or personal data on screen (key field shows only its placeholder). The user approved the cut.
+- Not verified: History screen not shown (the last scene ends on Home with "History (1)"); no hazard-warning card in this take.
+- Next executable action: attach the video to the submission.
 
 ## Handoff entry template
 
