@@ -2,14 +2,16 @@
 
 Android-only AI-guided repair assistant. NativePHP + Laravel, standalone Symfony AI packages, local SQLite and a user-supplied model key.
 
-> **Status:** the app runs on an Android emulator and a physical **ZTE 8050**, completes real DeepSeek `deepseek-flash` text and image calls from embedded PHP, captures photos, stores them locally until explicit consent, persists repair sessions and follow-up turns in SQLite, filters hazardous model output deterministically, keeps one provider key in on-device encrypted storage, and has Home/Diagnosis/Result/History screens. T13 adds a curated multi-provider catalog (DeepSeek, OpenRouter, Hugging Face, Anthropic, OpenAI) behind Symfony AI; host tests pass and the Android smoke status is tracked in [docs/STATUS.md](docs/STATUS.md). A signed release APK builds and installs on the emulator; Android CI, stable signing secrets, the physical release install and the demo video are the remaining release steps. See [docs/STATUS.md](docs/STATUS.md) and [docs/TASKS.md](docs/TASKS.md).
+**▶ [Watch the 90-second demo](https://www.youtube.com/watch?v=zixGJWrnKGc)** · **[Download v1.0.0 (APK)](https://github.com/damijanc/fixit/releases/tag/v1.0.0)** · **[Judge guide](docs/JUDGE_GUIDE.md)**
+
+> **Status:** v1.0.0 is released and verified on a physical **ZTE 8050**. Photograph a broken item, describe the problem, and Claude Opus 5.5 (default) returns a structured diagnosis card that FixIt's deterministic safety rules check line by line. Symfony AI runs inside the phone's embedded PHP, so DeepSeek, OpenRouter, Hugging Face and OpenAI work through the same flow. Photos are shrunk on the device and uploaded only after explicit consent; the provider key is encrypted on the device and sessions stay in local SQLite. Details and evidence: [docs/STATUS.md](docs/STATUS.md) and [docs/TASKS.md](docs/TASKS.md).
 
 ## Quick start
 
 Prerequisites: PHP 8.3+, Composer 2. For Android builds: a JDK and Android SDK (see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)).
 
 ```bash
-git clone git@github.com:damijanc/fixit.git
+git clone https://github.com/damijanc/fixit.git
 cd fixit
 bash scripts/bootstrap.sh
 php artisan test
