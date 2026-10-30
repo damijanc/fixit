@@ -27,6 +27,8 @@ Screen only. The voiceover is generated with a text-to-speech service (ElevenLab
 
 Generated voiceover (2026-10-29): ElevenLabs voice **Bella** (`hpp4J3VqNfWAUOO0d1Us`), model `eleven_multilingual_v2`, one MP3 per scene; scene 3 is written "Claude Opus five point five" for pronunciation. Scene lengths 6.4 / 4.8 / 3.9 / 7.2 / 10.8 / 7.5 / 8.5 / 7.8 s (57 s); each starts 0.5 s into its slot above. The audio files are not committed.
 
+Final video (2026-10-30): `fixit-demo-90s.mp4`, 90 s, 1920×1080, 6 MB — the ZTE screen on the right, one caption per slot on the left, and a closing card (stack, v1.0.0, repository, "Voice: ElevenLabs"). Cut from one 189 s take; the Claude waits (~10 s and ~7 s) are removed, typing is sped up and the first card scrolls at about half speed. Not committed; attached to the submission.
+
 Good card moments: a photo where Claude flags a **battery** risk shows the warning row; a phone + charger photo shows ordinary safe checks passing the filter.
 
 ## Record
