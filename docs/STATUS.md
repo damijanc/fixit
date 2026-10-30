@@ -41,7 +41,7 @@ Updated: 2026-10-30
 - CI: PHP tests + tag-driven Android release VERIFIED on GitHub Actions.
 
 ## Next step
-Submit: attach the 90-second demo video to the submission (or the v1.0.0 release). Optional: real-key runs for DeepSeek, OpenRouter and OpenAI; a cache read on a second follow-up; T12.
+Demo video published on YouTube (<https://www.youtube.com/watch?v=zixGJWrnKGc>) and linked from the README, judge guide and the repository website field; the repository is public. Optional: real-key runs for DeepSeek, OpenRouter and OpenAI; a cache read on a second follow-up; T12.
 
 ## Known risks
 - Real-key runs after T13 cover Anthropic and Hugging Face only; provider/model IDs were checked against live catalogs and Symfony AI 0.15 catalogs, but account access, regional availability and vision pricing can differ.

@@ -2,6 +2,8 @@
 
 FixIt is an Android-only, AI-guided repair assistant built with NativePHP, Laravel and Symfony AI. You photograph a broken household item, describe the problem, and get a cautious diagnosis with safe checks — never instructions to open mains-powered devices or service gas equipment.
 
+**▶ [Watch the 90-second demo video](https://www.youtube.com/watch?v=zixGJWrnKGc)** — recorded on the ZTE 8050 with v1.0.0 and Claude Opus 5.5.
+
 **Bring your own provider.** FixIt runs Symfony AI inside the phone's embedded PHP, so the same diagnosis flow works with five providers and fourteen curated models — pick one in Settings and paste that provider's key. No FixIt backend sits in between.
 
 ## What you need
